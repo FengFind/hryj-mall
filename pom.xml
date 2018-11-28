@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.hryj</groupId>
+    <artifactId>hryj-mall</artifactId>
+    <name>hryj-mall</name>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>compent</module>
+        <module>server</module>
+    </modules>
+
+        <properties>
+            <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+            <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+            <maven.compiler.source>1.8</maven.compiler.source>
+            <maven.compiler.target>1.8</maven.compiler.target>
+            <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+            <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
+            <java.version>1.8</java.version>
+            <javax.servlet-api.version>4.0.0</javax.servlet-api.version>
+
+            <spring-boot.version>1.5.14.RELEASE</spring-boot.version>
+            <spring-cloud.version>Edgware.SR4</spring-cloud.version>
+
+            <fastjson.version>1.2.47</fastjson.version>
+            <lombok.version>1.18.0</lombok.version>
+            <hutool-all.version>4.1.3</hutool-all.version>
+            <java-emoji-converter.version>0.1.1</java-emoji-converter.version>
+            <mybatis-plus-boot-starter.version>2.3</mybatis-plus-boot-starter.version>
+            <mysql-connector-java.version>5.1.46</mysql-connector-java.version>
+            <druid-spring-boot-starter.version>1.1.10</druid-spring-boot-starter.version>
+            <springfox.version>2.8.0</springfox.version>
+            <spring-boot-starter-redis.version>1.4.7.RELEASE</spring-boot-starter-redis.version>
+            <egzosn-pay-version>2.10.1</egzosn-pay-version>
+            <aliyun-java-sdk-core.version>4.0.0</aliyun-java-sdk-core.version>
+            <aliyun-java-sdk-dysmsapi.version>1.1.0</aliyun-java-sdk-dysmsapi.version>
+            <aliyun-sdk-oss.version>3.1.0</aliyun-sdk-oss.version>
+        </properties>
+
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <url>http://119.23.8.80:18081/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <name>Nexus Release Repository</name>
+            <url>http://119.23.8.80:18081/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus</id>
+            <name>Nexus Snapshot Repository</name>
+            <url>http://119.23.8.80:18081/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+</project>
