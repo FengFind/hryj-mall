@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.RegionBalanceDetailMapper">
+
+    <!-- 分页查询区域分润明细列表 -->
+    <select id="searchRegionProfitDetailList" resultType="com.hryj.entity.vo.profit.response.RegionBalanceDetailVO">
+        SELECT
+            prbd.id AS region_balance_detail_id,
+            prbd.dept_id,
+            prbd.dept_name,
+            prbd.staff_name,
+            prbd.salary_amt,
+            IFNULL(prbd.actual_profit,0) AS actual_profit
+        FROM
+            pr_region_balance_detail prbd
+        <where>
+            <if test="summary_id !=null">
+                AND prbd.summary_id = #{summary_id}
+            </if>
+            <if test="dept_id !=null">
+                AND prbd.dept_id = #{dept_id}
+            </if>
+            <if test="staff_name !=null">
+                AND prbd.staff_name LIKE CONCAT('%',#{staff_name},'%')
+            </if>
+        </where>
+        ORDER BY prbd.dept_id ASC
+    </select>
+</mapper>

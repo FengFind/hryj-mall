@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.IndexNavigationMapper">
+    <select id="findIndexNavigation" resultType="com.hryj.entity.vo.promotion.indexNavigation.response.IndexNavigationResponseVO">
+        SELECT
+            a.id AS index_navigation_id,
+            a.navigation_name,
+            a.navigation_icon,
+            a.navigation_link,
+            a.sort_num
+        FROM
+            pt_index_navigation_config a
+        WHERE
+            a.enable_flag = 1
+        ORDER BY
+            a.sort_num
+    </select>
+</mapper>

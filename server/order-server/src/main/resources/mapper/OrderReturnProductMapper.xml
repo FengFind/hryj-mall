@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderReturnProductMapper">
+
+
+    <!--根据订单ID查询订单退货商品信息-->
+    <select id="getReturnProductList" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.bo.order.ReturnProduct">
+          select * from o_return_product where order_id = #{order_id}
+    </select>
+
+
+</mapper>

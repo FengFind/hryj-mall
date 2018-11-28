@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.DataQueryMapper">
+
+    <!-- 查询个人数据 -->
+    <select id="findPersonalData" resultType="com.hryj.entity.vo.profit.response.DataQueryResponseVO">
+        SELECT
+            SUM(psos.distribution_num) AS distribution_num,
+            SUM(psos.take_back_num) AS take_back_num,
+            SUM(psos.timeout_distribution_num) AS timeout_distribution_num,
+            SUM(psos.help_order_num) AS help_order_num,
+            SUM(psos.help_order_amt) AS help_order_amt,
+            SUM(psos.help_order_product_num) AS help_order_product_num,
+            SUM(psos.referral_register_num) AS referral_register_num
+        FROM
+            pr_staff_order_statis psos
+        <where>
+            <if test="staff_id !=null">
+                AND psos.staff_id = #{staff_id}
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (psos.statis_date BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询门店团队数据 -->
+    <select id="findStoreTeamData" resultType="com.hryj.entity.vo.profit.response.DataQueryResponseVO">
+        SELECT
+            SUM(psos.distribution_num) AS distribution_num,
+            SUM(psos.take_back_num) AS take_back_num,
+            SUM(psos.timeout_distribution_num) AS timeout_distribution_num,
+            SUM(psos.help_order_num) AS help_order_num,
+            SUM(psos.help_order_amt) AS help_order_amt,
+            SUM(psos.help_order_product_num) AS help_order_product_num,
+            SUM(psos.store_order_num) AS store_order_num,
+            SUM(psos.store_order_amt) AS store_order_amt,
+            SUM(psos.store_order_product_num) AS store_order_product_num,
+            SUM(psos.referral_register_num) AS referral_register_num,
+            SUM(psos.new_trade_user_num) AS new_trade_user_num
+        FROM
+            pr_store_order_statis psos
+        <where>
+            <if test="store_id !=null">
+                AND psos.store_id = #{store_id}
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (psos.statis_date BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询部门团队数据 -->
+    <select id="findDeptTeamData" resultType="com.hryj.entity.vo.profit.response.DataQueryResponseVO">
+        SELECT
+            T1.distribution_num,
+            T1.take_back_num,
+            T1.timeout_distribution_num,
+            T1.help_order_num,
+            T1.help_order_amt,
+            T1.help_order_product_num,
+            (T1.store_order_num+T2.wh_order_num) AS store_order_num,
+            (T1.store_order_amt+T2.wh_order_amt) AS store_order_amt,
+            (T1.store_order_product_num+T2.wh_order_product_num) AS store_order_product_num,
+            (T1.referral_register_num+T2.wh_referral_register_num) AS referral_register_num,
+            (T1.new_trade_user_num+T2.wh_new_trade_user_num) AS new_trade_user_num
+        FROM
+            (SELECT
+                IFNULL(SUM(psos.distribution_num),0) AS distribution_num,
+                IFNULL(SUM(psos.take_back_num),0) AS take_back_num,
+                IFNULL(SUM(psos.timeout_distribution_num),0) AS timeout_distribution_num,
+                IFNULL(SUM(psos.help_order_num),0) AS help_order_num,
+                IFNULL(SUM(psos.help_order_amt),0) AS help_order_amt,
+                IFNULL(SUM(psos.help_order_product_num),0) AS help_order_product_num,
+                IFNULL(SUM(psos.store_order_num),0) AS store_order_num,
+                IFNULL(SUM(psos.store_order_amt),0) AS store_order_amt,
+                IFNULL(SUM(psos.store_order_product_num),0) AS store_order_product_num,
+                IFNULL(SUM(psos.referral_register_num),0) AS referral_register_num,
+                IFNULL(SUM(psos.new_trade_user_num),0) AS new_trade_user_num
+            FROM
+                pr_store_order_statis psos
+            <where>
+                <if test="dept_path !=null and dept_path !=''">
+                    AND psos.dept_path LIKE CONCAT(#{dept_path},'%')
+                </if>
+                <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                    AND (psos.statis_date BETWEEN #{start_date} AND #{end_date})
+                </if>
+            </where>
+                ) T1,
+            (SELECT
+                IFNULL(SUM(pwos.wh_order_num),0) AS wh_order_num,
+                IFNULL(SUM(pwos.wh_order_amt),0) AS wh_order_amt,
+                IFNULL(SUM(pwos.wh_order_product_num),0) AS wh_order_product_num,
+                IFNULL(SUM(pwos.referral_register_num),0) AS wh_referral_register_num,
+                IFNULL(SUM(pwos.new_trade_user_num),0) AS wh_new_trade_user_num
+            FROM
+                pr_wh_order_statis pwos
+            <where>
+                <if test="dept_path !=null and dept_path !=''">
+                    AND pwos.dept_path LIKE CONCAT(#{dept_path},'%')
+                </if>
+                <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                    AND (pwos.statis_date BETWEEN #{start_date} AND #{end_date})
+                </if>
+            </where>
+                ) T2
+    </select>
+
+    <!-- 查询仓库团队数据 -->
+    <select id="findWhTeamData" resultType="com.hryj.entity.vo.profit.response.DataQueryResponseVO">
+        SELECT
+            IFNULL(SUM(pwos.wh_order_num),0) AS store_order_num,
+            IFNULL(SUM(pwos.wh_order_amt),0) AS store_order_amt,
+            IFNULL(SUM(pwos.wh_order_product_num),0) AS store_order_product_num,
+            IFNULL(SUM(pwos.referral_register_num),0) AS referral_register_num,
+            IFNULL(SUM(pwos.new_trade_user_num),0) AS new_trade_user_num
+        FROM
+            pr_wh_order_statis pwos
+        <where>
+            <if test="wh_id !=null">
+                AND pwos.wh_id = #{wh_id}
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (pwos.statis_date BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+    </select>
+</mapper>

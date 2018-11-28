@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderProductMapper">
+
+    <!--根据订单ID 查询订单商品列表-->
+    <select id="getOrderPorductVOList" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.OrderPorductVO">
+		SELECT
+			pro.id AS order_product_id,
+			pro.product_id,
+			pro.product_name,
+			pro.list_image_url,
+			pro.org_price,
+			pro.actual_price,
+			pro.quantity,
+			pro.activity_id,
+			info.party_id,
+			pro.order_id,
+			pro.product_type_id,
+			(
+				CASE
+				WHEN pro.activity_id IS NOT NULL THEN
+					pro.actual_price
+				ELSE
+					NULL
+				END
+			) AS activity_price
+		FROM
+			o_order_product pro
+		INNER JOIN o_order_info info ON pro.order_id = info.id
+		where pro.order_id = #{order_id}
+    </select>
+
+	<!--批量插入商品数据 -->
+	<insert id="insertBatch"  parameterType="java.util.List">
+		insert into o_order_product(id,order_id,party_id,product_category_id,product_id,product_name,list_image_url
+		,cost_price,org_price,actual_price,quantity,activity_id,price_modify_flag,before_price,product_type_id,third_sku_id) values
+		<foreach collection="orderProducts" item="item" separator=",">
+			(#{item.id},#{item.order_id},#{item.party_id},#{item.product_category_id},#{item.product_id},#{item.product_name}
+			,#{item.list_image_url},#{item.cost_price},#{item.org_price},#{item.actual_price},#{item.quantity}
+			,#{item.activity_id},#{item.price_modify_flag},#{item.before_price},#{item.product_type_id},#{item.third_sku_id})
+		</foreach>
+	</insert>
+
+</mapper>

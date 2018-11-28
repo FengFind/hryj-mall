@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.PartyProductMapper">
+
+    <select id="selectPartyIntersectionProduct" parameterType="Map"
+            resultType="com.hryj.entity.bo.product.ProductInfo">
+        <if test="party_id_list != null">
+            SELECT all_res.product_id as id,
+            p.product_type_id,
+            p.product_name,
+            p.prod_cate_path,
+            p.brand,
+            p.made_where,
+            p.list_image_url,
+            p.specification,
+            p.cost_price
+            from p_product_info p
+            left join p_brand brand on p.brand = brand.id
+            INNER JOIN (
+                select product_id from (
+                <foreach collection="party_id_list" index="index" item="item" open="" separator="INNER JOIN" close="">
+                    (select product_id, count(*) as count_ from p_party_product
+                    <where>
+                        party_id in (${item.value})
+                        <if test="up_down_status != null">
+                            and up_down_status = #{up_down_status}
+                        </if>
+                        <if test="inventory_limit != null">
+                            and inventory_quantity &gt; #{inventory_limit}
+                        </if>
+                    </where>
+                    group by product_id HAVING count_ = #{item.count} ) as t_${index}
+                    <if test="index &gt; 0">
+                        USING(product_id)
+                    </if>
+                </foreach>
+                )
+            ) all_res on p.id = all_res.product_id
+            <where>
+                <if test="prod_name != null">
+                    p.product_name like CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="brand_name != null">
+                    and brand.brand_name like CONCAT('%', #{brand_name}, '%')
+                </if>
+                <if test="brand_id != null">
+                    and p.brand = #{brand_id}
+                </if>
+                <if test="cate_name != null">
+                    and p.prod_cate_path like CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="cate_id != null">
+                    and p.prod_cate_id = #{cate_id}
+                </if>
+                <if test="cate_id_set != null">
+                    and p.prod_cate_id in
+                    <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="forbid_sale_limit != null">
+                    and p.forbid_sale_flag &lt;&gt; #{forbid_sale_limit}
+                </if>
+                <if test="product_type_id_list != null">
+                    and p.product_type_id in
+                    <foreach collection="product_type_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="product_type_id != null">
+                    and p.product_type_id = #{product_type_id}
+                </if>
+            </where>
+            order by p.update_time DESC
+        </if>
+    </select>
+
+    <select id="selectPartyProduct" parameterType="Map" resultType="com.hryj.entity.vo.product.partyprod.mapping.PartyProductMappingRow">
+        SELECT t1.id as party_product_id,
+            t1.up_down_status,
+            t1.product_id,
+            t1.inventory_quantity,
+            t1.sale_price,
+            t1.introduction_date,
+            t1.sales_end_date,
+            DATE_FORMAT(t1.create_time,'%Y-%m-%d %H:%i:%s') AS create_time,
+            t2.prod_cate_id,
+            t2.prod_cate_path as category_name,
+            t2.made_where,
+            t2.operator_name,
+            t2.forbid_sale_flag,
+            t2.integral,
+            t2.product_info,
+            t2.shelf_life,
+            t2.audit_status,
+            t2.product_name,
+            t2.brand,
+            t2.specification,
+            t2.prod_cate_path as category_name,
+            t2.cost_price,
+            t2.list_image_url,
+            t2.product_type_id,
+            t3.inventory_quantity as center_inventory_quantity
+            from p_party_product t1
+            LEFT JOIN p_product_info t2 on t1.product_id = t2.id
+            LEFT JOIN p_cross_border t3 on t2.id = t3.id
+            LEFT JOIN p_brand t4 on t2.brand = t4.id
+            <where>
+                <if test="party_id != null">
+                    t1.party_id = #{party_id}
+                </if>
+                <if test="up_down_status != null">
+                    and t1.up_down_status = #{up_down_status}
+                </if>
+                <if test="prod_name != null">
+                    and t2.product_name like CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="cate_name != null">
+                    and t2.prod_cate_path like CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="brand_id != null">
+                    and t2.brand = #{brand_id}
+                </if>
+                <if test="brand_name != null">
+                    and t4.brand_name like CONCAT('%', #{brand_name}, '%')
+                </if>
+                <if test="cate_id_list != null">
+                    and t2.prod_cate_id in
+                    <foreach collection="cate_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="product_type_id_list != null">
+                    and t2.product_type_id in
+                    <foreach collection="product_type_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="product_type_id != null">
+                    and t2.product_type_id = #{product_type_id}
+                </if>
+            </where>
+            order by t1.create_time desc
+    </select>
+
+    <select id="selectWarehouseSelectableProduct" parameterType="Map" resultType="com.hryj.entity.vo.product.partyprod.mapping.PartyProductMappingRow">
+        SELECT t1.id as product_id,
+                t1.product_name,
+                t1.prod_cate_path as category_name,
+                t1.list_image_url,
+                t1.brand,
+                t1.cost_price,
+                t1.specification,
+                t1.up_down_status,
+                t1.made_where,
+                t1.forbid_sale_flag,
+                t1.integral,
+                t1.introduction_date,
+                t1.sales_end_date,
+                t1.product_info,
+                t1.shelf_life,
+                t1.operator_name,
+                t1.create_time,
+                t1.product_type_id
+            from p_product_info t1
+            left join p_brand brand on t1.brand = brand.id
+            <where>
+                <if test="filter_selected != null and filter_selected == 1 and party_id != null">
+                    t1.id not in (
+                        select t2.product_id from p_party_product t2 where t2.party_id = #{party_id}
+                    )
+                </if>
+                <if test="prod_name != null">
+                    and t1.product_name like CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="cate_name != null">
+                    and t1.prod_cate_path LIKE CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="brand_id != null">
+                    and t1.brand = #{brand_id}
+                </if>
+                <if test="brand_name != null">
+                    and (brand.brand_name like CONCAT('%', #{brand_name}, '%') or brand.brand_name_assist like CONCAT('%', #{brand_name}, '%'))
+                </if>
+                <if test="prod_id != null">
+                    and t1.id = #{prod_id}
+                </if>
+                <if test="cate_id != null">
+                    and t1.prod_cate_id = #{cate_id}
+                </if>
+                <if test="cate_id_set != null">
+                    and t1.prod_cate_id in
+                    <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="up_down_status != null">
+                    and t1.up_down_status = #{up_down_status}
+                </if>
+                <if test="forbid_sale_flag != null">
+                    and t1.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+                </if>
+                <if test="product_type_id_list != null">
+                    and t1.product_type_id in
+                    <foreach collection="product_type_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="product_type_id != null">
+                    and t1.product_type_id = #{product_type_id}
+                </if>
+            </where>
+            order by t1.create_time desc
+    </select>
+
+    <select id="selectStoreSelectableProduct" parameterType="Map" resultType="com.hryj.entity.vo.product.partyprod.mapping.PartyProductMappingRow">
+        SELECT t1.id as product_id,
+            t1.product_name,
+            t1.prod_cate_path as category_name,
+            t1.list_image_url,
+            t1.brand,
+            t1.specification,
+            t1.made_where,
+            t1.forbid_sale_flag,
+            t1.integral,
+            t1.introduction_date,
+            t1.sales_end_date,
+            t1.product_info,
+            t1.shelf_life,
+            t1.operator_name,
+            t1.create_time,
+            t1.product_type_id,
+            tt.id as party_product_id,
+            tt.sale_price as cost_price,
+            tt.up_down_status
+        from p_product_info t1
+        left join p_party_product tt on t1.id = tt.product_id
+        left join p_brand brand on t1.brand = brand.id
+        <where>
+            <if test="warehouse_id_list != null">
+                t1.id in (
+                    select t2.product_id from p_party_product t2
+                    where t2.party_id in
+                    <foreach collection="warehouse_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                    <if test="filter_selected != null and filter_selected == 1 and party_id != null">
+                        and t2.product_id not in (
+                            select t3.product_id from p_party_product t3 where t3.party_id = #{party_id}
+                        )
+                    </if>
+                    <if test="up_down_status != null">
+                        and t2.up_down_status = #{up_down_status}
+                    </if>
+                )
+            </if>
+            <if test="prod_name != null">
+                and t1.product_name like CONCAT('%', #{prod_name}, '%')
+            </if>
+            <if test="cate_name != null">
+                and t1.prod_cate_path LIKE CONCAT('%', #{cate_name}, '%')
+            </if>
+            <if test="brand_id != null">
+                and t1.brand = #{brand_id}
+            </if>
+            <if test="brand_name != null">
+                and (brand.brand_name like CONCAT('%', #{brand_name}, '%') or brand.brand_name_assist like CONCAT('%', #{brand_name}, '%'))
+            </if>
+            <if test="prod_id != null">
+                and t1.id = #{prod_id}
+            </if>
+            <if test="cate_id != null">
+                and t1.prod_cate_id = #{cate_id}
+            </if>
+            <if test="cate_id_set != null">
+                and t1.prod_cate_id in
+                <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="forbid_sale_flag != null">
+                and t1.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+            </if>
+            <if test="warehouse_id_list != null">
+                and tt.party_id in
+                <foreach collection="warehouse_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="check_sale_price != null">
+                and tt.sale_price &gt; 0
+            </if>
+            <if test="product_type_id_list != null">
+                and t1.product_type_id in
+                <foreach collection="product_type_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="product_type_id != null">
+                and t1.product_type_id = #{product_type_id}
+            </if>
+        </where>
+        order by t1.create_time desc
+    </select>
+
+    <select id="selectPartyProdCount" parameterType="Map" resultType="com.hryj.entity.vo.product.partyprod.response.PartyProductStatisticsItem">
+        SELECT t1.party_id, COUNT(*) as all_num
+        from p_party_product t1
+        <where>
+            <if test="party_id_list != null">
+                t1.party_id in
+                <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="up_down_status != null">
+                and t1.up_down_status = #{up_down_status}
+            </if>
+        </where>
+        GROUP BY t1.party_id
+    </select>
+
+    <select id="selectOnePartyActivityProd" parameterType="Map" resultType="com.hryj.entity.vo.product.response.app.AppProdListItemResponseVO">
+        <if test="party_id != null">
+            SELECT t1.product_id,
+                t1.activity_id,
+                t1.activity_price,
+                t1.sort_num,
+                t4.activity_mark_image,
+                t5.sale_price,
+                t5.inventory_quantity,
+                t6.specification,
+                t6.product_name,
+                t6.list_image_url,
+                t6.prod_cate_path as category_name,
+                t5.party_id
+            from pt_activity_product_item t1
+            LEFT JOIN pt_activity_info t4 on t1.activity_id = t4.id
+            LEFT JOIN p_party_product t5 on t1.product_id = t5.product_id
+            LEFT JOIN p_product_info t6 on t1.product_id = t6.id
+            <where>
+                <if test="party_id != null">
+                    t5.party_id = #{party_id}
+                </if>
+                <if test="up_down_status != null">
+                    and t5.up_down_status = #{up_down_status}
+                </if>
+
+                <if test="inventory_quantity != null">
+                    and t5.inventory_quantity &gt; #{inventory_quantity}
+                </if>
+
+                <if test="forbid_sale_flag != null">
+                    and t6.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+                </if>
+                <if test="cate_id_set != null">
+                    and t6.prod_cate_id in
+                    <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="cate_name != null">
+                    and t6.prod_cate_path like CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="prod_name != null">
+                    and t6.product_name like CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="activity_status != null">
+                    and t4.activity_status = #{activity_status}
+                </if>
+                <if test="audit_status != null">
+                    and t4.audit_status = #{audit_status}
+                </if>
+                <if test="start_date != null">
+                    and t4.start_date &lt;= #{start_date}
+                </if>
+                <if test="end_date != null">
+                    and t4.end_date &gt;= #{end_date}
+                </if>
+            </where>
+            and t1.activity_id in(
+                SELECT t2.activity_id
+                from pt_activity_scope_item t2
+                LEFT JOIN pt_activity_info t3 on t2.activity_id = t3.id
+                where t2.party_id = #{party_id}
+                <if test="activity_status != null">
+                    and t3.activity_status = #{activity_status}
+                </if>
+                <if test="audit_status != null">
+                    and t3.audit_status = #{audit_status}
+                </if>
+            )
+            order by t1.sort_num
+        </if>
+    </select>
+
+    <select id="selectManyPartyProd" parameterType="Map" resultType="com.hryj.entity.vo.product.response.app.AppProdListItemResponseVO">
+        SELECT t1.party_id, t1.sale_price, t1.product_id, t1.inventory_quantity
+        from p_party_product t1
+        LEFT JOIN p_product_info t2 on t1.product_id = t2.id
+        <where>
+            <if test="party_id_list != null">
+                t1.party_id in
+                <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="party_id != null">
+                and t1.party_id = #{party_id}
+            </if>
+            <if test="up_down_status != null">
+                and t1.up_down_status = ${up_down_status}
+            </if>
+            <if test="introduction_date != null">
+                and t1.introduction_date &lt;= #{introduction_date}
+            </if>
+            <if test="sales_end_date != null">
+                and t1.sales_end_date &gt;= #{sales_end_date}
+            </if>
+            <if test="inventory_quantity != null">
+                and t1.inventory_quantity &gt; #{inventory_quantity}
+            </if>
+            <if test="forbid_sale_flag != null">
+                and t2.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+            </if>
+            <if test="cate_id_set != null">
+                and t2.prod_cate_id in
+                <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="cate_name != null">
+                and t2.prod_cate_path like CONCAT('%', #{cate_name}, '%')
+            </if>
+            <if test="prod_name != null">
+                and t2.product_name like CONCAT('%', #{prod_name}, '%')
+            </if>
+        </where>
+        order by t1.update_time desc
+    </select>
+
+    <select id="statisticsPartyProdGroupByCate" parameterType="Map" resultType="com.hryj.entity.bo.product.PartyProduct">
+        SELECT
+          t2.prod_cate_id as product_id,
+          count(*) as inventory_quantity
+        FROM p_party_product t1
+        LEFT JOIN p_product_info t2 on t1.product_id = t2.id
+        LEFT JOIN p_cross_border t3 on t2.id = t3.id
+        <where>
+            <if test="party_id_set != null">
+                t1.party_id in
+                <foreach collection="party_id_set" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="party_id != null">
+                and t1.party_id = #{party_id}
+            </if>
+            <if test="forbid_sale_flag != null">
+                and t2.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+            </if>
+            <if test="up_down_status != null">
+                and t1.up_down_status = #{up_down_status}
+            </if>
+            <if test="introduction_date != null">
+                and t1.introduction_date &lt;= #{introduction_date}
+            </if>
+            <if test="sales_end_date != null">
+                and t1.sales_end_date &gt;= #{sales_end_date}
+            </if>
+            <if test="inventory_quantity != null">
+                and (t1.inventory_quantity &gt; #{inventory_quantity} or t3.inventory_quantity &gt; #{inventory_quantity})
+            </if>
+            <if test="product_type_id != null">
+                and t2.product_type_id = #{product_type_id}
+            </if>
+            <if test="product_type_id_list != null">
+                and t2.product_type_id in
+                <foreach collection="product_type_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY t2.prod_cate_id
+    </select>
+
+    <update id="updateStoreProdSalesPrice" parameterType="Map">
+        <if test="party_id_list != null and sales_price != null and product_id != null">
+            UPDATE p_party_product t1 set t1.sale_price = #{sales_price} where t1.product_id = #{product_id} and t1.party_id in
+            <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </update>
+
+    <select id="findPartyTopSalesByOrderFinished" parameterType="map" resultType="com.hryj.entity.vo.product.response.ProductTopSalesItemResponseVO">
+        SELECT summary_table.party_id, summary_table.product_id, summary_table.quantity as total_sales,
+        prod.product_name, prod.list_image_url, prod.brand, prod.specification,
+        party_prod.up_down_status, party_prod.inventory_quantity, party_prod.sale_price
+        from (
+            SELECT t1.party_id, t1.product_id, SUM(t1.quantity) as quantity
+            from o_order_product t1
+            left join o_order_info t2 on t1.order_id = t2.id
+            <where>
+                t2.order_status = '08'
+                <if test="date_time_begin != null">
+                    and t2.complete_time &gt;= #{date_time_begin}
+                </if>
+                <if test="date_time_end != null">
+                    and t2.complete_time &lt;= #{date_time_end}
+                </if>
+                <if test="party_id != null">
+                    and t1.party_id = #{party_id}
+                </if>
+                <if test="party_id_list != null">
+                    and t1.party_id in
+                    <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+            </where>
+            GROUP BY t1.party_id, t1.product_id
+        ) summary_table
+        left join p_product_info prod on summary_table.product_id = prod.id
+        left join p_party_product party_prod on summary_table.party_id = party_prod.party_id and summary_table.product_id = party_prod.product_id
+        <where>
+            <if test="up_down_status != null">
+                party_prod.up_down_status = #{up_down_status}
+            </if>
+        </where>
+        order by summary_table.quantity desc, party_prod.inventory_quantity desc
+        <if test="limit_start != null and limit_end != null">
+            limit #{limit_start}, #{limit_end}
+        </if>
+    </select>
+
+    <select id="findPartyTopSalesByStatisticsData" parameterType="map" resultType="com.hryj.entity.vo.product.response.ProductTopSalesItemResponseVO">
+        select data_table.party_id, data_table.product_id, data_table.total_sales,
+        prod.product_name, prod.brand, prod.specification, prod.list_image_url,
+        party_prod.up_down_status, party_prod.inventory_quantity, party_prod.sale_price
+        from (
+            SELECT t1.party_id, t1.product_id, SUM(t1.total_quantity_finished) as total_sales
+            from p_product_summary_item t1
+            <where>
+                <if test="party_id != null">
+                    t1.party_id = #{party_id}
+                </if>
+                <if test="party_id_list != null">
+                    and t1.party_id in
+                    <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="date_time_begin != null">
+                    and t1.day_date &gt;= #{date_time_begin}
+                </if>
+                <if test="date_time_end != null">
+                    and t1.day_date &lt;= #{date_time_end}
+                </if>
+            </where>
+            GROUP BY t1.party_id, t1.product_id
+        ) data_table
+        left join p_product_info prod on data_table.product_id = prod.id
+        left join p_party_product party_prod on data_table.party_id = party_prod.party_id and data_table.product_id = party_prod.product_id
+        <where>
+            data_table.total_sales &gt; 0
+            <if test="up_down_status != null">
+                and party_prod.up_down_status = #{up_down_status}
+            </if>
+        </where>
+        ORDER BY data_table.total_sales desc, inventory_quantity DESC
+        <if test="limit_start != null and limit_end != null">
+            limit #{limit_start}, #{limit_end}
+        </if>
+    </select>
+
+    <select id="statisticsPartyProd" parameterType="map" resultType="com.hryj.entity.bo.product.PartyProduct">
+        SELECT t1.party_id, COUNT(*) as inventory_quantity
+        FROM p_party_product t1
+        LEFT JOIN p_product_info t2 on t1.product_id = t2.id
+        LEFT JOIN p_cross_border t3 on t2.id = t3.id
+        <where>
+            <if test="forbid_sale_check != null">
+                t2.forbid_sale_flag &lt;&gt; 1
+            </if>
+            <if test="inventory_check != null">
+                and (t1.inventory_quantity &gt; 0 or t3.inventory_quantity &gt; 0)
+            </if>
+            <if test="up_down_status != null">
+                and t1.up_down_status = #{up_down_status}
+            </if>
+            <if test="introduction_date != null">
+                and (t1.introduction_date is null or t1.introduction_date &lt;= #{introduction_date})
+            </if>
+            <if test="sales_end_date != null">
+                and (t1.sales_end_date is null or t1.sales_end_date &gt;= #{sales_end_date})
+            </if>
+            <if test="party_id != null">
+                and t1.party_id = #{party_id}
+            </if>
+            <if test="party_id_list != null">
+                and t1.party_id in
+                <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY t1.party_id
+    </select>
+
+
+    <select id="pageFindPartyActivityAndNormalProduct" parameterType="map" resultType="com.hryj.entity.vo.product.response.app.AppProdListItemResponseVO">
+        <if test="party_id != null">
+            SELECT
+                t5.party_id,
+                t1.product_id,
+                t1.activity_id,
+                t5.sale_price,
+                t1.activity_price,
+                t1.sort_num,
+                t4.activity_mark_image,
+                t5.inventory_quantity,
+                t6.product_type_id,
+                t6.specification,
+                t6.product_name,
+                t6.list_image_url,
+                t6.prod_cate_path AS category_name,
+                1 AS data_type,
+                NULL AS sales,
+                t4.end_date
+            FROM pt_activity_product_item t1
+            LEFT JOIN pt_activity_info t4 ON t1.activity_id = t4.id
+            LEFT JOIN p_party_product t5 ON t1.product_id = t5.product_id
+            LEFT JOIN p_product_info t6 ON t1.product_id = t6.id
+            LEFT JOIN p_cross_border t7 ON t6.id = t7.id
+            <where>
+                t5.party_id = #{party_id}
+                AND t4.activity_status = 1
+                AND t4.audit_status = 1
+                <if test="start_date != null">
+                    AND t4.start_date &lt;= #{start_date}
+                </if>
+                <if test="end_date != null">
+                    AND t4.end_date &gt;= #{end_date}
+                </if>
+                <if test="up_down_status != null">
+                    AND t5.up_down_status = #{up_down_status}
+                </if>
+                <if test="inventory_quantity != null">
+                    AND (t5.inventory_quantity &gt; #{inventory_quantity} or t7.inventory_quantity &gt; #{inventory_quantity})
+                </if>
+                <if test="forbid_sale_flag != null">
+                    AND t6.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+                </if>
+                <if test="cate_id != null">
+                    AND t6.prod_cate_id = #{cate_id}
+                </if>
+                <if test="cate_id_set != null">
+                    AND t6.prod_cate_id in
+                    <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="cate_name != null">
+                    AND t6.prod_cate_path LIKE CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="prod_name != null">
+                    AND t6.product_name LIKE CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="product_type_id != null">
+                    AND t6.product_type_id = #{product_type_id}
+                </if>
+                AND t1.activity_id IN (
+                    SELECT t2.activity_id FROM pt_activity_scope_item t2
+                    LEFT JOIN pt_activity_info t3 ON t2.activity_id = t3.id
+                    WHERE t2.party_id = #{party_id} AND t3.activity_status = 1 AND t3.audit_status = 1
+                )
+            </where>
+            UNION ALL
+            SELECT
+                party_prod.party_id,
+                party_prod.product_id,
+                NULL AS activity_id,
+                party_prod.sale_price,
+                NULL AS activity_price,
+                NULL AS sort_num,
+                NULL AS activity_mark_image,
+                party_prod.inventory_quantity,
+                prod.product_type_id,
+                prod.specification,
+                prod.product_name,
+                prod.list_image_url,
+                prod.prod_cate_path AS category_name,
+                0 AS data_type,
+                prod_summary.total_quantity_finished AS sales,
+                NULL as end_date
+            FROM p_party_product party_prod
+            LEFT JOIN p_product_info prod ON party_prod.product_id = prod.id
+            LEFT JOIN p_product_summary prod_summary ON party_prod.party_id = prod_summary.party_id
+                      AND party_prod.product_id = prod_summary.product_id
+            LEFT JOIN p_cross_border crossborder on prod.id = crossborder.id
+            <where>
+                party_prod.party_id = #{party_id}
+                <if test="introduction_date != null">
+                    AND party_prod.introduction_date &lt;= #{introduction_date}
+                </if>
+                <if test="sales_end_date != null">
+                    AND party_prod.sales_end_date &gt;= #{sales_end_date}
+                </if>
+                <if test="forbid_sale_flag != null">
+                    AND prod.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+                </if>
+                <if test="up_down_status != null">
+                    AND party_prod.up_down_status = #{up_down_status}
+                </if>
+                <if test="inventory_quantity != null">
+                    AND (party_prod.inventory_quantity &gt; #{inventory_quantity} or crossborder.inventory_quantity &gt; #{inventory_quantity})
+                </if>
+                <if test="cate_id != null">
+                    AND prod.prod_cate_id = #{cate_id}
+                </if>
+                <if test="cate_id_set != null">
+                    AND prod.prod_cate_id in
+                    <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="cate_name != null">
+                    AND prod.prod_cate_path LIKE CONCAT('%', #{cate_name}, '%')
+                </if>
+                <if test="prod_name != null">
+                    AND prod.product_name LIKE CONCAT('%', #{prod_name}, '%')
+                </if>
+                <if test="product_type_id != null">
+                    AND prod.product_type_id = #{product_type_id}
+                </if>
+            </where>
+            ORDER BY data_type DESC, sort_num DESC, sales DESC
+        </if>
+    </select>
+
+    <select id="inventoryLockQuery" parameterType="list" resultType="com.hryj.entity.vo.inventory.mapping.InventoryLockMappingItem">
+        <if test="params_list != null">
+            <foreach collection="params_list" index="i" item="item" open=" " separator="UNION ALL" close=" ">
+                SELECT
+                t1.id,
+                t1.inventory_quantity,
+                t1.party_id,
+                t1.product_id,
+                t2.product_type_id,
+                t3.inventory_quantity as center_inventory_quantity
+                FROM
+                p_party_product t1
+                LEFT JOIN p_product_info t2 on t1.product_id = t2.id
+                LEFT JOIN p_cross_border t3 on t1.product_id = t3.id
+                where t1.party_id = #{item.party_id} and t1.product_id = #{item.product_id}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="findPartyEarliestStartActivityDate" resultType="com.hryj.entity.bo.promotion.ActivityInfo">
+        select MIN(t2.start_date) as start_date
+        from pt_activity_scope_item t1
+        left join pt_activity_info t2 on t1.activity_id = t2.id
+        where t1.party_id = #{party_id}
+        and t2.activity_status = 1
+        and t2.audit_status = 1
+        and t2.start_date &gt; #{curr}
+    </select>
+
+    <select id="findPartyActivityDate" resultType="com.hryj.entity.bo.promotion.ActivityScopeItem">
+        SELECT t1.party_id, t2.start_date, t2.end_date
+        FROM pt_activity_scope_item t1
+        LEFT JOIN pt_activity_info t2 ON t1.activity_id = t2.id
+        <where>
+            t2.activity_status = 1
+            AND t2.audit_status = 1
+            <if test="party_id != null">
+                and t1.party_id = #{party_id}
+            </if>
+            <if test="curr != null">
+                AND (t2.start_date &gt; #{curr} or t2.end_date &gt; #{curr})
+            </if>
+        </where>
+    </select>
+
+    <select id="findPartyProductType" resultType="java.lang.String">
+        SELECT t2.product_type_id from p_party_product t1 INNER JOIN p_product_info t2 on t1.product_id = t2.id where t1.id = #{party_product_id}
+    </select>
+</mapper>

@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.StaffUserInfoMapper">
+
+
+    <!--根据员工id查询详情映射结果结-->
+    <resultMap id="getStaffDetailByIdResultMap" type="com.hryj.entity.vo.staff.user.response.StaffResponseVO">
+        <id column="staff_id" property="staff_id"/>
+        <result column="staff_account" property="staff_account"/>
+        <result column="phone_num" property="phone_num"/>
+        <result column="staff_name" property="staff_name"/>
+        <result column="id_card" property="id_card"/>
+        <result column="sex" property="sex"/>
+        <result column="education" property="education"/>
+        <result column="staff_pic" property="staff_pic"/>
+        <result column="email" property="email"/>
+        <result column="home_address" property="home_address"/>
+        <result column="contact_name" property="contact_name"/>
+        <result column="contact_tel" property="contact_tel"/>
+        <result column="staff_type" property="staff_type"/>
+
+        <!--  资源列表-->
+        <collection property="resourceRepostVoList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.user.response.StaffResourceResponseVO">
+            <id column="resource_id" property="resource_id"/>
+            <result column="perm_name" property="perm_name"/>
+        </collection>
+
+        <!--角色-->
+        <collection property="roleResponseVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.role.response.RoleResponseVO">
+            <id column="role_id" property="role_id"/>
+            <result column="role_name" property="role_name"/>
+        </collection>
+
+
+    </resultMap>
+
+    <!--根据员工id查询详情-->
+    <select id="getStaffByIdDet" parameterType="com.hryj.entity.vo.staff.user.request.StaffIdRequestVO" resultMap="getStaffDetailByIdResultMap">
+
+        SELECT
+            u.id staff_id,
+            u.staff_account,
+            u.phone_num,
+            u.login_fail_num,
+            u.staff_name,
+            u.id_card,
+            u.sex,
+            u.education,
+            u.staff_pic,
+            u.email,
+            u.home_address,
+            u.contact_name,
+            u.contact_tel,
+            u.referral_code,
+            u.staff_type,
+
+            r.id resource_id,
+            r.perm_name,
+
+            sr.role_name,
+			sr.id role_id
+
+        from sf_staff_user_info u
+        LEFT JOIN sf_staff_perm_relation spr on u.id=spr.staff_id
+        LEFT JOIN sf_perm_resource r on spr.perm_id=r.id
+        LEFT JOIN sf_staff_role_relation srr on u.id =srr.staff_id
+        LEFT JOIN sf_staff_role sr on srr.role_id= sr.id
+        where u.id= #{staff_id}
+    </select>
+
+    <!--员工列表-->
+    <select id="getStaffList" parameterType="com.hryj.entity.vo.staff.user.request.StaffListParamRequestVO"
+            resultType="com.hryj.entity.vo.staff.user.response.StaffListResponseVO">
+        SELECT
+        u.id staff_id,
+        u.staff_account,
+        u.phone_num,
+        u.staff_name,
+        u.staff_type,
+        u.referral_code,
+        if(sdr.staff_status,dp.dept_name,'') dept_name
+        from sf_staff_user_info u
+        LEFT JOIN sf_staff_dept_relation sdr on u.id=sdr.staff_id
+        LEFT JOIN sf_dept_group dp on sdr.dept_id=dp.id
+
+        <where>
+               u.staff_type in ('01','02')
+            <!-- 员工账号-->
+            <if test="staff_account != null and staff_account !=''"> and u.staff_account=#{staff_account}</if>
+
+            <!--  手机号码-->
+            <if test="phone_num != null and phone_num!=''">and u.phone_num=#{phone_num}</if>
+
+            <!-- 员工姓名-->
+            <if test="staff_name != null and staff_name!=''">
+                and u.staff_name like CONCAT('%', #{staff_name}, '%')
+            </if>
+
+            <!-- 员工类型-->
+            <if test="staff_type != null and staff_type!=''">and u.staff_type=#{staff_type}</if>
+
+            <!-- 所属组织id-->
+            <if test="dept_id != null">and dp.id=#{dept_id}</if>
+
+            <!-- 员工是否有组织,0:默认查询所有,1:有组织,2:无组织-->
+            <if test="staff_dept_type ==1">and sdr.dept_id IS not NULL</if>
+            <if test="staff_dept_type ==2">and (sdr.dept_id IS NULL or sdr.staff_status = 0)</if>
+
+        </where>
+
+        ORDER BY u.create_time DESC
+    </select>
+
+
+    <!--根据员工账号查找详情-->
+    <select id="getStaffAccountByDet" resultType="java.util.Map">
+        SELECT
+            u.id staff_id,
+            u.staff_account,
+            u.phone_num,
+            d.staff_status
+        FROM
+            sf_staff_user_info u
+        LEFT JOIN sf_staff_dept_relation d ON u.id = staff_id
+         where staff_account = #{staff_account} limit 1
+
+    </select>
+
+    <!--员工推荐码-->
+    <select id="getStaffReferralCodeCount" resultType="java.lang.Integer">
+       SELECT count(id) from sf_staff_user_info WHERE referral_code= #{referral_code}
+    </select>
+
+    <!-- 根据部门id查询员工列表 -->
+    <select id="findStaffListByDeptId" resultType="com.hryj.entity.vo.staff.user.StaffUserVO">
+        SELECT
+            ssui.id AS staff_id,
+            ssdr.dept_id AS store_id,
+            ssui.staff_account,
+            ssui.staff_name,
+            ssui.phone_num,
+            ssdr.staff_job,
+            (SELECT code_name FROM sys_code sc WHERE sc.code_type='StaffJob' AND code_value=ssdr.staff_job) AS staff_job_name
+        FROM
+            sf_staff_user_info ssui,
+            sf_staff_dept_relation ssdr
+        WHERE
+            ssui.id = ssdr.staff_id
+        AND ssdr.staff_status = 1
+        AND ssdr.dept_id = #{dept_id}
+    </select>
+
+    <!-- 根据员工id查询员工基本信息 -->
+    <select id="findStaffUserVOByStaffId" resultType="com.hryj.entity.vo.staff.user.StaffUserVO">
+        SELECT
+            ssui.id AS staff_id,
+            ssui.staff_account,
+            ssui.staff_name,
+            ssui.phone_num,
+            ssdr.staff_job,
+            (SELECT code_name FROM sys_code sc WHERE sc.code_type='StaffJob' AND code_value=ssdr.staff_job) AS staff_job_name
+        FROM
+            sf_staff_user_info ssui LEFT JOIN sf_staff_dept_relation ssdr ON ssui.id = ssdr.staff_id
+        <where>
+            <if test="staff_id !=null">
+                AND ssui.id = #{staff_id}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询员工的权限资源 -->
+    <select id="findStaffPermResource" resultType="java.util.Map">
+        SELECT
+            GROUP_CONCAT(spr.perm_name) AS permNameList,
+            GROUP_CONCAT(spr.perm_flag) AS permFlagList,
+            GROUP_CONCAT(spr.perm_url) AS permUrlList
+        FROM
+            sf_perm_resource spr,sf_staff_perm_relation sspr
+        WHERE
+            spr.id = sspr.perm_id
+        AND sspr.staff_id = #{staff_id}
+    </select>
+
+    <!-- 查询员工部门信息 -->
+    <select id="findStaffDeptVO" resultType="com.hryj.entity.vo.staff.user.StaffDeptVO">
+        SELECT
+            ssui.id AS staff_id,
+            ssui.staff_account,
+            ssui.phone_num,
+            ssui.staff_name,
+            ssui.referral_code,
+            ssui.staff_type,
+            sdg.id AS dept_id,
+            sdg.dept_type,
+            sdg.dept_name,
+            sdg.dept_path,
+            ssdr.staff_job,
+            (select sc.code_name from sys_code sc where sc.code_type='StaffJob' and sc.code_value=ssdr.staff_job) AS staff_job_name,
+            ssdr.staff_status
+        FROM
+            sf_staff_user_info ssui
+        LEFT JOIN sf_staff_dept_relation ssdr ON ssui.id = ssdr.staff_id
+        LEFT JOIN sf_dept_group sdg ON ssdr.dept_id = sdg.id
+        <where>
+            AND ssdr.staff_status =1
+            <if test="referral_code !=null">
+                AND ssui.referral_code = #{referral_code}
+            </if>
+            <if test="phone_num !=null">
+                AND ssui.phone_num = #{phone_num}
+            </if>
+            <if test="staff_id !=null">
+                AND ssui.id = #{staff_id}
+            </if>
+        </where>
+        LIMIT 1
+    </select>
+
+    <!-- 根据poi位置获取门店列表 -->
+    <select id="findStoreListByPoiId" resultType="com.hryj.entity.vo.user.UserPartyVO">
+        SELECT
+            sdg.id AS party_id,
+            sdg.dept_type AS dept_type,
+            sdg.dept_name AS party_name,
+            ssda.distance AS distance,
+            CONCAT(ssi.province_name,ssi.city_name,ssi.area_name,ssi.street_name,ssi.detail_address) AS party_address
+        FROM
+            sf_store_distribution_area ssda,sf_dept_group sdg,sf_store_info ssi
+        <where>
+            AND ssda.dept_id = sdg.id
+            AND ssi.id = ssda.dept_id
+            AND sdg.dept_status =1
+            <if test="poi_id !=null">
+                AND ssda.poi_id = #{poi_id}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据城市代码查询仓库中心 -->
+    <select id="findWarehouseByCityCode" resultType="com.hryj.entity.vo.user.UserPartyVO">
+        SELECT
+            sdg.id AS party_id,
+            sdg.dept_type AS dept_type,
+            sdg.dept_name AS party_name,
+            CONCAT(swi.province_name,swi.city_name,swi.area_name,swi.street_name,swi.detail_address) AS party_address
+        FROM
+            sf_wh_distribution_area swda,sf_dept_group sdg,sf_warehouse_info swi
+        <where>
+            AND swda.dept_id = sdg.id
+            AND swi.id = swda.dept_id
+            AND sdg.dept_status =1
+            <if test="city_code !=null">
+                AND swda.city_id  = #{city_code}
+            </if>
+        </where>
+        LIMIT 1
+    </select>
+
+    <!-- 查询底下所有店员列表 -->
+    <select id="findStoreStaffUserList" resultType="com.hryj.entity.vo.staff.team.response.AppTeamDataClerkResponseVO">
+        SELECT
+            ssui.id AS staff_id,
+            ssui.staff_name,
+            ssdr.staff_job
+        FROM
+            sf_staff_user_info ssui,
+            sf_staff_dept_relation ssdr,
+            (
+                SELECT
+                    sdg.id AS dept_id
+                FROM
+                    sf_dept_group sdg
+                WHERE
+                    sdg.dept_type = '01'
+                AND sdg.dept_status = 1
+                AND sdg.dept_path LIKE CONCAT(#{dept_path},'%')
+            ) T
+        WHERE
+            ssui.id = ssdr.staff_id
+        AND ssdr.dept_id = T.dept_id
+        AND ssdr.staff_status =1
+        ORDER BY ssdr.dept_id ASC
+    </select>
+
+    <!-- 查询底下所有部门列表 -->
+    <select id="findUnderDeptList" resultType="com.hryj.entity.vo.staff.team.response.AppTeamDataDeptResponseVO">
+        SELECT
+            sdg.id AS dept_id,
+            sdg.dept_name
+        FROM
+            sf_dept_group sdg
+        WHERE
+            sdg.dept_type = '03'
+        AND sdg.dept_status = 1
+        AND sdg.dept_path LIKE CONCAT(#{dept_path},'%')
+        ORDER BY sdg.dept_level ASC
+    </select>
+
+    <!-- 查询底下所有门店列表 -->
+    <select id="findUnderStoreList" resultType="com.hryj.entity.vo.staff.team.response.AppTeamDataDeptResponseVO">
+        SELECT
+            sdg.id AS dept_id,
+            sdg.dept_name
+        FROM
+            sf_dept_group sdg
+        WHERE
+            sdg.dept_type = '01'
+        AND sdg.dept_status = 1
+        AND sdg.dept_path LIKE CONCAT(#{dept_path},'%')
+        ORDER BY sdg.dept_name ASC
+    </select>
+
+    <!-- 查询底下所有仓库列表 -->
+    <select id="findUnderWHList" resultType="com.hryj.entity.vo.staff.team.response.AppTeamDataDeptResponseVO">
+        SELECT
+            sdg.id AS dept_id,
+            sdg.dept_name
+        FROM
+            sf_dept_group sdg
+        WHERE
+            sdg.dept_type = '02'
+        AND sdg.dept_status = 1
+        AND sdg.dept_path LIKE CONCAT(#{dept_path},'%')
+        ORDER BY sdg.dept_name ASC
+    </select>
+    <select id="getStaffIdCardAndPhonNum" parameterType="list" resultType="com.hryj.entity.vo.staff.user.request.StaffUserExcelVO">
+
+        select  u.id staff_id,
+                u.phone_num,
+                u.login_fail_num,
+                u.staff_name,
+                u.id_card,
+                u.referral_code
+        from    sf_staff_user_info u
+        where   u.id_card in
+        <foreach collection="list" item="item" open="(" close=")"  separator=",">
+                #{item.id_card}
+        </foreach>
+        or u.phone_num in
+        <foreach collection="list" item="item" open="(" close=")"  separator=",">
+            #{item.phone_num}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.AdvertisingPositionMapper">
+    <!-- 根据条件分页查询广告位信息列表 -->
+    <select id="getAdvertisingPositionPageByCondition" resultType="com.hryj.entity.vo.promotion.advertisingposition.response.AdvertisingPositionItemResponseVO">
+        SELECT
+        ap.id as advertising_position_id,
+        ap.advertising_name,
+        ap.operator_name,
+        ap.advertising_scope,
+        ap.start_date,
+        ap.end_date,
+        ap.advertising_status,
+        ap.advertising_type
+        FROM
+        pt_advertising_position ap
+        <where>
+            <if test="operator_name !=null and operator_name !=''">
+                ap.operator_name LIKE CONCAT('%',#{operator_name},'%')
+            </if>
+            <if test="advertising_name !=null and advertising_name !=''">
+                and ap.advertising_name LIKE CONCAT('%',#{advertising_name},'%')
+            </if>
+            <if test="create_time_begin !=null and create_time_begin !=''">
+                and DATE_FORMAT(ap.create_time, '%Y-%m-%d %H:%i:%S') &gt;= #{create_time_begin}
+            </if>
+            <if test="create_time_end !=null and create_time_end !=''">
+                and DATE_FORMAT(ap.create_time, '%Y-%m-%d %H:%i:%S') &lt;= #{create_time_end}
+            </if>
+            <if test="start_time_begin != null and start_time_begin != ''">
+                and DATE_FORMAT(ap.start_date, '%Y-%m-%d %H:%i:%S') &gt;= #{start_time_begin}
+            </if>
+            <if test="start_time_end !=null and start_time_end !=''">
+                and DATE_FORMAT(ap.start_date, '%Y-%m-%d %H:%i:%S') &lt;= #{start_time_end}
+            </if>
+            <if test="end_time_begin != null and end_time_begin != ''">
+                and DATE_FORMAT(ap.end_date, '%Y-%m-%d %H:%i:%S') &gt;= #{end_time_begin}
+            </if>
+            <if test="end_time_end !=null and end_time_end !=''">
+                and DATE_FORMAT(ap.end_date, '%Y-%m-%d %H:%i:%S') &lt;= #{end_time_end}
+            </if>
+            <if test="advertising_status != null and advertising_status != ''">
+                and ap.advertising_status = #{advertising_status}
+            </if>
+            <if test="advertising_type != null and advertising_type != ''">
+                and ap.advertising_type = #{advertising_type}
+            </if>
+            <if test="s_w_id_list != null and s_w_id_list.size > 0">
+                and ap.id in (
+                SELECT scope.advertising_id
+                from pt_advertising_scope_item scope
+                where scope.party_id in
+                <foreach collection="s_w_id_list" index="i" item="partyid" open="(" separator="," close=")">
+                    #{partyid}
+                </foreach>
+                group by scope.advertising_id
+                )
+            </if>
+        </where>
+        ORDER BY ap.create_time DESC
+    </select>
+
+    <!-- 根据门店或仓库id查找展示时间内的广告位跳转信息 -->
+    <select id="getAdvertisingPositionJumpDataForApp" resultType="com.hryj.entity.vo.promotion.advertisingposition.response.AppAdvertisingPositionResponseVO">
+        SELECT
+        pap.id AS advertising_id,
+        pasi.party_id,
+        pajc.jump_type,
+        pajc.jump_value,
+        pap.advertising_image AS image_url
+        FROM
+        pt_advertising_scope_item pasi
+        LEFT JOIN pt_advertising_position pap ON pasi.advertising_id = pap.id
+        LEFT JOIN pt_advertising_jump_config pajc ON pasi.advertising_id = pajc.advertising_id
+        WHERE
+        pap.advertising_status = 1
+        AND pasi.party_id = #{party_id}
+        and DATE_FORMAT(pap.start_date, '%Y-%m-%d %H:%i:%S') &lt;= #{currTime}
+        and DATE_FORMAT(pap.end_date, '%Y-%m-%d %H:%i:%S') &gt;= #{currTime}
+        ORDER BY
+        pasi.top_flag desc,
+        pap.update_time desc
+    </select>
+    <!-- 根据门店或仓库id查找展示时间内的广告位跳转信息 -->
+    <select id="getAdvertisingPositionJumpDataForAppPlus" resultType="com.hryj.entity.vo.promotion.advertisingposition.response.AppAdvertisingPositionResponseVO">
+        SELECT
+        pap.id AS advertising_id,
+        pasi.party_id,
+        pajc.jump_type,
+        pajc.jump_value,
+        pap.advertising_image AS image_url,
+        pap.start_date,
+        pap.end_date
+        FROM
+        pt_advertising_scope_item pasi
+        LEFT JOIN pt_advertising_position pap ON pasi.advertising_id = pap.id
+        LEFT JOIN pt_advertising_jump_config pajc ON pasi.advertising_id = pajc.advertising_id
+        WHERE
+        pap.advertising_status = 1
+        AND pasi.party_id = #{party_id}
+        ORDER BY
+        pasi.top_flag desc,
+        pap.update_time desc
+    </select>
+
+    <select id="getPartyAdvertisingStoreByAdvertisingId" resultType="com.hryj.entity.vo.promotion.advertisingposition.response.JoinPartyAdvertisingItemResponseVO">
+        SELECT
+            scope.id AS advertising_scope_item_id,
+            scope.party_id,
+            u.staff_name party_leader,
+            g.dept_name AS party_name,
+            store.province_name AS province,
+            store.city_name AS city,
+            store.area_name AS area,
+            scope.top_flag
+        FROM
+            pt_advertising_scope_item scope,
+            sf_store_info store,
+            sf_dept_group g,
+            sf_staff_dept_relation r,
+            sf_staff_user_info u
+        WHERE
+            scope.advertising_id = #{advertising_id}
+        AND store.id = scope.party_id
+        AND scope.party_id = g.id
+        AND g.id = r.dept_id
+        AND r.staff_job = '01'
+        AND r.staff_id = u.id
+        ORDER BY
+            store.create_time DESC
+    </select>
+
+    <select id="getPartyAdvertisingWarehouseByAdvertisingId" resultType="com.hryj.entity.vo.promotion.advertisingposition.response.JoinPartyAdvertisingItemResponseVO">
+        SELECT
+            scope.id AS advertising_scope_item_id,
+            scope.party_id,
+            g.dept_name as party_name,
+            wh.province_name as province,
+            wh.city_name as city,
+            wh.area_name as area,
+            scope.top_flag
+        FROM
+            pt_advertising_scope_item scope,
+            sf_warehouse_info wh,
+            sf_dept_group g
+        WHERE
+            scope.advertising_id = #{advertising_id}
+        AND wh.id = scope.party_id
+        AND wh.id = g.id
+        ORDER BY
+            wh.create_time DESC
+    </select>
+</mapper>

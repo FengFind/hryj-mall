@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ProductGeoMapper">
+
+    <select id="getProductGeoList" resultType="com.hryj.entity.vo.product.common.response.ProductGeoResponseVO">
+        SELECT
+            g.id as geo_id,
+            g.type,
+            g.code,
+            g.name,
+            g.logo_image
+        FROM
+            p_product_geo g
+    </select>
+</mapper>

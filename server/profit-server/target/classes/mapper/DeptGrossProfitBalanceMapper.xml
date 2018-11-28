@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.DeptGrossProfitBalanceMapper">
+
+    <!-- 分页查询部门毛利分润 -->
+    <select id="searcheDeptGrossProfit" resultType="com.hryj.entity.vo.profit.response.DeptGrossProfitResponseVO">
+        SELECT
+            pdgpb.balance_month,
+            unix_timestamp(str_to_date(CONCAT(pdgpb.balance_month,'-01 00:00:00'), '%Y-%m-%d %H:%i:%s'))*1000 AS balance_time,
+            (CASE WHEN (IFNULL(SUM(pdgpb.gross_profit_amt),0)) &lt;0 THEN 0 ELSE IFNULL(SUM(pdgpb.gross_profit_amt),0) END) AS gross_profit_amt
+        FROM
+            pr_dept_gross_profit_balance pdgpb
+        <where>
+            <if test="dept_id !=null">
+                AND pdgpb.dept_id = #{dept_id}
+            </if>
+        </where>
+        GROUP BY pdgpb.balance_month
+        ORDER BY pdgpb.balance_month DESC
+    </select>
+</mapper>

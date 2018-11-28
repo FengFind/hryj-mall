@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.DeptShareConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.hryj.entity.bo.staff.dept.DeptShareConfig">
+        <id column="id" />
+        <result column="store_id" property="store_id"  />
+        <result column="dept_id" property="dept_id"  />
+        <result column="staff_id" property="staff_id"  />
+        <result column="share_ratio" property="share_ratio"  />
+        <result column="operator_id" property="operator_id"  />
+        <result column="create_time" property="create_time"  />
+        <result column="update_time" property="update_time"  />
+    </resultMap>
+    <!--据门店或者仓库id + 组织id 查询分润员工(以门店或者仓库+组织的维度)-->
+<select id="getDeptStaffShare" parameterType="com.hryj.entity.vo.staff.dept.request.DeptShareRequestVO"
+        resultType="com.hryj.entity.vo.staff.dept.response.DeptStaffShareResPonseVO">
+
+        SELECT
+        staff_id,
+        share_ratio
+        FROM sf_dept_share_config
+        WHERE dept_id= #{dept_id} and store_id=#{store_id}
+
+</select>
+<!--    根据门店或者仓库id 查询分润列表(以门店或者仓库维度)-->
+    <select id="getDeptShareList"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptShareListResponseVO">
+     SELECT
+        c.staff_id,
+        c.share_ratio,
+        dept.dept_name,
+        dept.id dept_id
+    FROM
+        sf_dept_share_config c
+    LEFT JOIN sf_dept_group dept ON c.dept_id = dept.id
+        WHERE store_id=#{dept_id}
+
+</select>
+
+</mapper>
+
+

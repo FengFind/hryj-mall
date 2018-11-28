@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderDistributionProductMapper">
+
+
+    <!--获得订单信息和订单商品信息-->
+    <select id="getOrderProductMessage" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.OrderInfoToDistributionVO">
+      select ooi.hope_delivery_start_time,
+         ooi.hope_delivery_start_time,
+         oop.quantity,
+         oop.order_id,
+         oop.product_id,
+         oop.party_id
+        FROM
+            o_order_info ooi,
+            o_order_product oop
+        WHERE
+            ooi.id = oop.order_id
+      AND ooi.id = #{orderId}
+    </select>
+
+
+</mapper>

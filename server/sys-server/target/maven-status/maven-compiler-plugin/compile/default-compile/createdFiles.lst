@@ -1,0 +1,17 @@
+com\hryj\service\AppVersionConfigService.class
+com\hryj\mapper\CodeTypeMapper.class
+com\hryj\service\CodeService.class
+com\hryj\SysApplication.class
+com\hryj\controller\CacheController.class
+com\hryj\mapper\CodeMapper.class
+com\hryj\mapper\PaymentConfigMapper.class
+com\hryj\mapper\AppVersionConfigMapper.class
+com\hryj\service\AppStartupRecordService.class
+com\hryj\service\PaymentConfigService.class
+com\hryj\mapper\AppStartupRecordMapper.class
+com\hryj\feign\ProductFeignClient.class
+com\hryj\feign\StaffFeignClient.class
+com\hryj\mapper\CityAreaMapper.class
+com\hryj\feign\UserFeignClient.class
+com\hryj\controller\SysController.class
+com\hryj\service\CityAreaService.class

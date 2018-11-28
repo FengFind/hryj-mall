@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.WarehouseInfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.hryj.entity.bo.staff.warehouse.WarehouseInfo">
+        <id column="id"/>
+        <result column="province_code" property="province_code"/>
+        <result column="province_name" property="province_name"/>
+        <result column="city_code" property="city_code"/>
+        <result column="city_name" property="city_name"/>
+        <result column="area_code" property="area_code"/>
+        <result column="area_name" property="area_name"/>
+        <result column="street_code" property="street_code"/>
+        <result column="street_name" property="street_name"/>
+        <result column="detail_address" property="detail_address"/>
+        <result column="locations" property="locations"/>
+        <result column="telephone" property="telephone"/>
+        <result column="operator_id" property="operator_id"/>
+        <result column="create_time" property="create_time"/>
+        <result column="update_time" property="update_time"/>
+    </resultMap>
+
+    <select id="selectWarehousePageList" parameterType="Map" resultType="com.hryj.entity.bo.staff.warehouse.WarehouseInfo">
+        <if test="party_id_list != null and party_id_list.size() > 0">
+            <foreach collection="party_id_list" index="index" item="item" open=" " separator="UNION ALL" close=" ">
+                select t1.id, t1.province_name, t1.city_name, t1.area_name, t1.street_name, t1.detail_address,
+                t1.locations,
+                t1.telephone, t1.create_time, t1.update_time, t2.dept_name as province_code
+                from sf_warehouse_info t1
+                left join sf_dept_group t2 on t1.id = t2.id
+                where t1.id in(${item}) and t2.dept_status = 1
+                <if test="province_code != null">
+                    and t1.province_code = #{province_code}
+                </if>
+                <if test="city_code != null">
+                    and t1.city_code = #{city_code}
+                </if>
+                <if test="area_code != null">
+                    and t1.area_code = #{area_code}
+                </if>
+                <if test="party_name != null">
+                    and t2.dept_name like CONCAT('%', #{party_name}, '%')
+                </if>
+            </foreach>
+            order by t1.create_time desc
+        </if>
+    </select>
+
+    <!-- 根据仓库id查询详情询映射结果 --><!---->
+    <resultMap id="getWarehoseByIdDetResultMap"
+               type="com.hryj.entity.vo.staff.warehouse.response.WarehouseInfoResponseVO">
+        <id column="id" property="warehouse_id"/>
+        <result column="province_code" property="province_code"/>
+        <result column="province_name" property="province_name"/>
+        <result column="city_code" property="city_code"/>
+        <result column="city_name" property="city_name"/>
+        <result column="area_code" property="area_code"/>
+        <result column="area_name" property="area_name"/>
+        <result column="street_code" property="street_code"/>
+        <result column="street_name" property="street_name"/>
+        <result column="detail_address" property="detail_address"/>
+        <result column="locations" property="locations"/>
+        <result column="telephone" property="telephone"/>
+        <result column="contact_name" property="contact_name"/>
+        <result column="dept_id" property="dept_id"/>
+        <result column="dept_name" property="dept_name"/>
+        <result column="warehouse_name" property="warehouse_name"/>
+
+        <!--员工组织关系-->
+        <collection property="warehouseStaffVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.warehouse.response.WarehouseStaffResponseVO">
+            <id column="staff_id" property="staff_id"/>
+            <result column="staff_name" property="staff_name"/>
+        </collection>
+
+        <!--仓库配送区关系-->
+        <collection property="whDistributionAreaVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.warehouse.response.WhDistributionAreaResponseVO">
+            <result column="area_city_name" property="city_name"/>
+            <result column="area_city_id" property="city_id"/>
+        </collection>
+    </resultMap>
+    <!--根据仓库id查询详情-->
+    <select id="getWarehoseByIdDet" parameterType="com.hryj.entity.vo.staff.warehouse.request.WarehouseIdRequestVO"
+            resultMap="getWarehoseByIdDetResultMap">
+        SELECT
+            warehouse.id,
+            warehouse.province_code,
+            warehouse.province_name,
+            warehouse.city_code,
+            warehouse.city_name,
+            warehouse.area_code,
+            warehouse.area_name,
+            warehouse.street_code,
+            warehouse.street_name,
+            warehouse.detail_address,
+            warehouse.locations,
+            warehouse.telephone,
+            warehouse.contact_name,
+            dept.dept_name warehouse_name,
+
+            dept.dept_pid dept_id,
+            (select sdp.dept_name from sf_dept_group sdp where sdp.id= dept.dept_pid ) dept_name,
+
+            area.city_name area_city_name,
+            area.city_id area_city_id,
+            staff.id staff_id,
+            staff.staff_name
+        FROM
+            sf_warehouse_info warehouse
+        LEFT JOIN sf_wh_distribution_area area ON warehouse.id = area.dept_id
+        LEFT JOIN sf_dept_group dept ON warehouse.id = dept.id
+        LEFT JOIN sf_staff_dept_relation relation ON relation.dept_id = dept.id and relation.staff_status = 1
+        LEFT JOIN sf_staff_user_info staff ON staff.id = relation.staff_id
+        where warehouse.id = #{warehouse_id}
+    </select>
+
+    <!--仓库列表查询-->
+    <select id="getWarehoseList" parameterType="com.hryj.entity.vo.staff.warehouse.request.WarehuoseParamRequestVO"
+            resultType="com.hryj.entity.vo.staff.warehouse.response.WarehouseListResponseVO">
+
+        SELECT
+        warehouse.id warehouse_id,
+        dept.dept_status warehouse_status,
+        dept.dept_name warehouse_name,
+        concat(warehouse.province_name,'-',warehouse.city_name) area_name,
+        (SELECT count(id) from sf_staff_dept_relation r WHERE  dept_id = dept.id and r.staff_status = 1) staff_total_count
+
+        FROM
+        sf_warehouse_info warehouse
+        LEFT JOIN sf_dept_group dept on warehouse.id = dept.id
+
+        <where>
+            <!-- 仓库名称-->
+            <if test="warehouse_name !=null and warehouse_name != ''">
+                dept.dept_name like CONCAT('%', #{warehouse_name}, '%')
+            </if>
+
+            <!--所在省代码-->
+            <if test="province_code !=null and province_code != ''">
+                and warehouse.province_code = #{province_code}
+            </if>
+            <!--所在市代码-->
+            <if test="city_code !=null and city_code != ''">
+                and warehouse.city_code = #{city_code}
+            </if>
+            <!--所在区代码-->
+            <if test="area_code !=null and area_code != ''">
+                and warehouse.area_code = #{area_code}
+            </if>
+
+        </where>
+        ORDER BY warehouse.create_time DESC
+    </select>
+
+    <!--app - 根据组织id获取仓库详情-->
+    <select id="getAppWarehouseIdByDet" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptIdByStoreOrWarehouseResponseVO">
+          select    warehouse.id dept_id,
+                    warehouse.detail_address,
+                    warehouse.telephone,
+                    warehouse.contact_name,
+                    warehouse.province_code,
+                    warehouse.province_name,
+                    warehouse.city_code,
+                    warehouse.city_name,
+                    warehouse.area_code,
+                    warehouse.area_name,
+                    dept.dept_name,
+                    dept.dept_status,
+                    dept.dept_type
+          from      sf_warehouse_info  warehouse
+          left join sf_dept_group dept on warehouse.id= dept.id
+          where     warehouse.id = #{dept_id}
+
+    </select>
+    
+    <select id="getWarehoseCityAreaList" parameterType="com.hryj.entity.vo.staff.warehouse.request.WareHouseCityIdsRequestVO" resultType="com.hryj.entity.vo.staff.warehouse.response.WarehouseCityAreaResponseVO">
+
+        SELECT
+        a.id city_id,
+        a.city_name
+        from sys_city_area a
+        where  a.pid in
+        <foreach item="id" collection="ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        and not exists(SELECT wha.id from sf_wh_distribution_area wha where wha.city_id=a.id
+        <if test="wareHouse_id !=null and wareHouse_id != ''">
+            and <![CDATA[ wha.dept_id != #{wareHouse_id} ]]>
+        </if>
+        )
+    </select>
+
+    <!-- 根据仓库id查询门店id列表 -->
+    <select id="getStoreIdListByWhId" resultType="java.util.Map">
+        SELECT
+            GROUP_CONCAT(ssi.id) AS storeIdList
+        FROM
+            sf_store_info ssi,
+            sf_wh_distribution_area swda
+        WHERE
+            ssi.city_code = swda.city_id
+        AND swda.dept_id = #{wh_id}
+    </select>
+</mapper>

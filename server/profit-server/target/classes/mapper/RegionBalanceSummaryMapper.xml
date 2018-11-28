@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.RegionBalanceSummaryMapper">
+
+    <!-- 分页查询区域分润列表 -->
+    <select id="searchRegionProfitList" resultType="com.hryj.entity.vo.profit.response.RegionBalanceVO">
+        SELECT
+            prbs.id AS summary_id,
+            prbs.balance_month,
+            prbs.dept_id,
+            prbs.dept_name,
+            prbs.region_salary_cost,
+            prbs.region_non_fixed_cost,
+            IFNULL(prbs.actual_profit,0) AS actual_profit,
+            prbs.setup_status,
+            prbs.store_setup_status
+        FROM
+            pr_region_balance_summary prbs
+        <where>
+            <if test="query_month !=null and query_month !=''">
+                AND prbs.balance_month = #{query_month}
+            </if>
+            <if test="dept_name !=null and dept_name !=''">
+                AND prbs.dept_name LIKE CONCAT('%',#{dept_name},'%')
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND prbs.dept_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="setup_status !=null">
+                AND prbs.setup_status = #{setup_status}
+            </if>
+            <if test="store_setup_status !=null">
+                AND prbs.store_setup_status = #{store_setup_status}
+            </if>
+        </where>
+        ORDER BY prbs.balance_month DESC,summary_id DESC
+    </select>
+
+    <!-- 更新区域公司结算汇总表的门店设置状态 -->
+    <update id="updateStoreSetupStatus">
+        UPDATE pr_region_balance_summary
+        SET store_setup_status = 1
+        WHERE
+            dept_id = #{region_id}
+        AND balance_month = #{balance_month}
+    </update>
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.PaymentGroupMapper">
+
+    <!--根据订单Id获取支付记录-->
+    <select id="getPaymentGroupInfoByOrderId" resultType="com.hryj.entity.vo.payment.PaymentGroupInfo">
+        SELECT
+        pay.pay_group_id,
+        pay.order_id,
+        pay.order_num,
+        ment.pay_group_sn,
+        ment.pay_total_amt pay_amt,
+        ment.payment_type,
+        ment.payment_method,
+        ment.payment_channel,
+        ment.pay_trade_num,
+        ment.pay_status,
+        ment.app_key
+        FROM
+        py_payment_group_order pay
+        INNER JOIN py_payment_group ment ON pay.pay_group_id = ment.id
+        where pay.order_id=#{order_id}
+        <if test="pay_status != null and pay_status !='' ">
+            and ment.pay_status=#{pay_status}
+        </if>
+        and ment.pay_status !='04'
+    </select>
+
+    <select id="getRecordByGroupId" resultType="com.hryj.entity.bo.payment.PaymentGroupOrder"
+            parameterType="java.lang.String">
+      select  * from py_payment_group_order ordregroup left  join  py_payment_group paygroup on ordregroup.pay_group_id= paygroup.id where paygroup.pay_group_sn=#{pay_group_sn}
+
+    </select>
+
+    <!--根据支付组编号查询支付组信息-->
+    <select id="getPaymentGroupInfo" resultType="com.hryj.entity.vo.payment.PaymentGroupResponseVO"
+            parameterType="java.lang.String">
+             select  * from py_payment_group where pay_group_sn=#{pay_group_sn}
+    </select>
+
+
+</mapper>

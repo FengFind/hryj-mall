@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderForStoreMapper">
+
+    <!--查询各状态发货，取货记录(店长)-->
+    <select id="findDistributionListForBuinour" resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+
+        SELECT
+        dis.id AS distribution_id,
+        ret.id AS return_id,
+        dis.distribution_type,
+        dis.distribution_status,
+        dis.user_id,
+        dis.user_name,
+        dis.user_phone,
+        dis.user_address,
+        dis.address_locations,
+        dis.hope_delivery_start_time,
+        dis.hope_delivery_end_time,
+        dis.actual_delivery_end_time,
+        dis.distribution_staff_id,
+        dis.distribution_staff_name,
+        dis.distribution_staff_phone,
+        dis.complete_time
+        FROM
+        o_order_info der
+        INNER JOIN o_order_distribution dis ON der.id = dis.order_id
+        LEFT JOIN o_order_return ret ON der.id = ret.order_id
+        where der.party_id=#{dept_id}
+        <if test="VO.distribution_type != null">
+            AND dis.distribution_type=#{VO.distribution_type}
+        </if>
+        <if test="VO.distribution_status != null">
+            AND dis.distribution_status=#{VO.distribution_status}
+        </if>
+        ORDER BY
+        dis.hope_delivery_end_time
+    </select>
+
+    <!--查询门店中，已完成，超时的配送单列表-->
+    <select id="findDistributionListForBuinourByStatus" resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+        SELECT
+        dis.id AS distribution_id,
+        dis.distribution_type,
+        dis.distribution_status,
+        dis.user_id,
+        dis.user_name,
+        dis.user_phone,
+        dis.user_address,
+        dis.address_locations,
+        dis.hope_delivery_start_time,
+        dis.hope_delivery_end_time,
+        dis.distribution_staff_id,
+        dis.distribution_staff_name,
+        dis.distribution_staff_phone,
+        dis.complete_time
+        FROM
+        o_order_info der
+        INNER JOIN o_order_distribution dis ON der.id = dis.order_id
+
+        where der.party_id=#{dept_id}
+        <if test="VO.distribution_type != null">
+            and dis.distribution_type=#{VO.distribution_type}
+        </if>
+        and distribution_staff_id is not null
+        ORDER BY
+        dis.create_time DESC
+    </select>
+
+    <!--查询各状态发货，取货记录(店员)-->
+    <select id="findDistributionListForStaff" resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+        SELECT
+        dis.id AS distribution_id,
+        dis.distribution_type,
+        dis.distribution_status,
+        dis.user_id,
+        dis.user_name,
+        dis.user_phone,
+        dis.user_address,
+        dis.address_locations,
+        dis.hope_delivery_start_time,
+        dis.hope_delivery_end_time,
+        dis.distribution_staff_id,
+        dis.distribution_staff_name,
+        dis.distribution_staff_phone,
+        dis.complete_time
+        FROM
+        o_order_distribution dis
+        where dis.distribution_staff_id=#{staff_id}
+        <if test="VO.distribution_type != null">
+            and dis.distribution_type=#{VO.distribution_type}
+        </if>
+        <if test="VO.distribution_status != null">
+            and dis.distribution_status=#{VO.distribution_status}
+        </if>
+        ORDER BY
+        dis.create_time DESC
+    </select>
+    <!--根据自提码获取自提信息-->
+    <select id="getSelfPickRecord" resultType="com.hryj.entity.vo.order.response.SelfPickResponseVO"
+            parameterType="java.lang.String">
+      select
+        order_id,
+        id AS self_pick_id,
+        self_pick_code,
+        user_name,
+        user_phone,
+        user_address
+	from
+	    o_order_self_pick
+	where
+	    self_pick_code=#{self_pick_code}
+
+    </select>
+    <!--根据用户电话获取自提列表-->
+    <select id="findUserSelfPickList" resultType="com.hryj.entity.vo.order.response.SelfPickResponseVO">
+        SELECT
+            pick.order_id,
+            pick.id AS self_pick_id,
+            pick.self_pick_code,
+            pick.user_name,
+            pick.user_phone,
+            pick.user_address,
+            pick.create_time
+        FROM
+            o_order_self_pick pick
+        INNER JOIN o_order_info info ON pick.order_id = info.id
+        WHERE
+            pick.user_phone = #{phone_num}
+            AND info.order_status = #{keyValue}
+            AND info.party_id=#{dept_id}
+        ORDER BY
+	pick.create_time DESC
+    </select>
+
+
+    <!--查询待分配退货列表-->
+    <select id="findReturnListForUnallocated" resultType="com.hryj.entity.vo.order.ReturnVO">
+       SELECT
+            ret.id AS return_id,
+            ret.order_id,
+            ret.return_type,
+            ret.return_status,
+            ret.return_apply_name,
+            ret.return_apply_time,
+            ret.return_reason,
+            ret.user_id,
+            ret.user_name,
+            ret.user_phone,
+            ret.user_address
+        FROM
+            o_order_info info
+        INNER JOIN o_order_return ret ON info.id = ret.order_id
+        WHERE
+            info.party_id=#{dept_id}
+        AND ret.return_status=#{return_status}
+        ORDER BY
+	  ret.create_time DESC
+    </select>
+
+    <!--查询已取货退货列表-->
+    <select id="findReturnListForAllot" resultType="com.hryj.entity.vo.order.ReturnVO">
+      SELECT
+        ret.id AS return_id,
+        ret.order_id,
+        ret.return_type,
+        ret.return_status,
+        ret.return_apply_name,
+        ret.return_apply_time,
+        ret.return_reason,
+        ret.user_id,
+        ret.user_name,
+        ret.user_phone,
+        ret.user_address,
+        ret.return_handel_id,
+        ret.return_handel_name,
+        dis.distribution_type,
+        (
+            CASE dis.distribution_status
+            WHEN '03' THEN
+                dis.update_time
+            ELSE
+                NULL
+            END
+        ) AS take_time
+        FROM
+            o_order_info info
+        INNER JOIN o_order_return ret ON info.id = ret.order_id
+        LEFT JOIN o_order_distribution dis ON info.id = dis.order_id
+        AND dis.distribution_type = '02'
+        WHERE
+            info.party_id=#{dept_id}
+            and ret.return_handel_id is not null
+      ORDER BY
+	  ret.create_time DESC
+    </select>
+
+    <!-- 门店查询退货单列表-->
+    <select id="findReturnListForStaff" resultType="com.hryj.entity.vo.order.ReturnVO">
+        SELECT
+        ret.id AS return_id,
+        ret.order_id,
+        ret.return_type,
+        ret.return_status,
+        ret.return_apply_name,
+        ret.return_apply_time,
+        ret.return_reason,
+        ret.user_id,
+        ret.user_name,
+        ret.user_phone,
+        ret.user_address,
+        ret.return_handel_id,
+        ret.return_handel_name
+        FROM
+        o_order_return ret
+        WHERE
+        ret.return_handel_id=#{staff_id}
+        <if test="VO.return_status!=null">
+            AND ret.return_status=#{VO.return_status}
+        </if>
+        ORDER BY
+        ret.create_time DESC
+    </select>
+
+    <!-- 仓库查询退货单列表-->
+    <select id="findReturnListForWarehouse" resultType="com.hryj.entity.vo.order.ReturnVO">
+        SELECT
+        ret.id AS return_id,
+        ret.order_id,
+        ret.return_type,
+        ret.return_status,
+        ret.return_apply_name,
+        ret.return_apply_time,
+        ret.return_reason,
+        ret.user_id,
+        ret.user_name,
+        ret.user_phone,
+        ret.user_address
+        FROM
+        o_order_return ret
+        INNER JOIN o_order_info info ON ret.order_id=info.id
+        WHERE
+        info.party_id=#{party_id}
+        <if test="VO.return_status!=null">
+            AND ret.return_status=#{VO.return_status}
+        </if>
+        ORDER BY
+        ret.create_time DESC
+    </select>
+
+
+    <!--获取配员工送单列表-->
+    <select id="findDistributionStaff" resultType="com.hryj.entity.vo.order.DistributionInfoVO"
+            parameterType="com.hryj.entity.vo.order.request.DistributionRequestVO">
+        SELECT
+        dis.id AS distribution_id,
+        dis.distribution_type,
+        dis.distribution_status,
+        dis.user_id,
+        dis.user_name,
+        dis.user_phone,
+        dis.user_address,
+        dis.address_locations,
+        dis.hope_delivery_start_time,
+        dis.hope_delivery_end_time,
+        dis.distribution_staff_id,
+        dis.distribution_staff_name,
+        dis.distribution_staff_phone,
+        dis.complete_time,
+        dis.order_id
+        FROM
+        o_order_distribution dis
+        where dis.distribution_staff_id=#{distribution_staff_id}
+        <if test="distribution_type != null">
+            and dis.distribution_type=#{distribution_type}
+        </if>
+        <if test="distribution_status != null">
+            and dis.distribution_status=#{distribution_status}
+        </if>
+        <if test="start_date != null and start_date !=''">
+            and DATE_FORMAT(dis.update_time,'%Y-%m-%d') >=#{start_date}
+        </if>
+        <if test="end_date != null and end_date !=''">
+            and DATE_FORMAT(dis.update_time,'%Y-%m-%d') &lt;=#{end_date}
+        </if>
+        ORDER BY
+        dis.create_time DESC
+    </select>
+
+    <!--获取员工已完成配送单-->
+    <select id="findDistributionStaffForOver" resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+        SELECT
+        dis.id AS distribution_id,
+        dis.distribution_type,
+        dis.distribution_status,
+        dis.user_id,
+        dis.user_name,
+        dis.user_phone,
+        dis.user_address,
+        dis.address_locations,
+        dis.hope_delivery_start_time,
+        dis.hope_delivery_end_time,
+        dis.distribution_staff_id,
+        dis.distribution_staff_name,
+        dis.distribution_staff_phone,
+        dis.complete_time,
+        dis.order_id
+        FROM
+        o_order_distribution dis
+        where dis.distribution_staff_id=#{VO.distribution_staff_id}
+        <if test="VO.distribution_type != null">
+            and dis.distribution_type=#{VO.distribution_type}
+        </if>
+        <if test="VO.distribution_status != null">
+            and (dis.distribution_status=#{VO.distribution_status} or distribution_status=#{distribution_status})
+        </if>
+        <if test="VO.start_date != null and VO.start_date !='' ">
+            and DATE_FORMAT(dis.update_time,'%Y-%m-%d') >=#{VO.start_date}
+        </if>
+        <if test="VO.end_date != null and VO.end_date !='' ">
+            and DATE_FORMAT(dis.update_time,'%Y-%m-%d') &lt;=#{VO.end_date}
+        </if>
+        ORDER BY
+        dis.update_time DESC
+    </select>
+
+    <!--门店点端查询代下单订单列表-->
+    <select id="findWaitPayOrderList" resultType="com.hryj.entity.vo.order.response.HistoricalOrderListResponseVO"
+            parameterType="com.hryj.entity.vo.order.request.OrderListRequestVO">
+        SELECT
+        info.id as order_id,
+        info.order_num,
+        info.order_status,
+        info.user_id,
+        info.user_name,
+        info.user_phone,
+        info.user_address,
+        info.pay_method,
+        info.delivery_type,
+        info.party_name,
+        info.party_type,
+        info.create_time,
+        info.order_type,
+        otype.description as order_type_name
+        FROM
+        o_order_info info
+        LEFT JOIN o_order_type otype on info.order_type=otype.order_type_id
+        <where>
+            help_staff_id=#{help_staff_id}
+            <if test="order_status != null and order_status !=''">
+                and info.order_status &lt;=#{order_status}
+            </if>
+        </where>
+        ORDER BY
+        info.create_time DESC
+    </select>
+    <!--门店点端查询代下单订单列表-->
+    <select id="findOrderListByStatus" resultType="com.hryj.entity.vo.order.response.HistoricalOrderListResponseVO"
+            parameterType="com.hryj.entity.vo.order.request.OrderListRequestVO">
+        SELECT
+        info.id as order_id,
+        info.order_num,
+        info.order_status,
+        info.user_id,
+        info.user_name,
+        info.user_phone,
+        info.user_address,
+        info.pay_method,
+        info.delivery_type,
+        info.party_name,
+        info.party_type,
+        info.order_type,
+        otype.description as order_type_name,
+        (SELECT count(*) from o_order_return where order_id=info.id) as return_num,
+        info.create_time
+        FROM
+        o_order_info info
+        LEFT JOIN o_order_type otype on info.order_type=otype.order_type_id
+        <where>
+            help_staff_id=#{help_staff_id}
+            <if test="order_status != null and order_status !=''">
+                and info.order_status in (${order_status})
+            </if>
+        </where>
+        ORDER BY
+        info.create_time DESC
+    </select>
+    <!--获取退货单详情-->
+    <select id="getReturnDetail" resultType="com.hryj.entity.vo.order.response.ReturnOrderDetailsResponseVO"
+            parameterType="com.hryj.entity.vo.order.ReturnOrderDetailsRequestVO">
+          SELECT
+            ret.id AS return_id,
+            ret.return_apply_name,
+            ret.return_apply_time,
+            ret.return_reason,
+            ret.return_image,
+            ret.user_id,
+            ret.user_name,
+            ret.user_phone,
+            ret.user_address
+        FROM
+            o_order_return ret
+          where ret.id=#{return_id}
+    </select>
+    <!--获取退货单商品-->
+    <select id="findReturnProductList" parameterType="com.hryj.entity.vo.order.ReturnOrderDetailsRequestVO"
+            resultType="com.hryj.entity.vo.order.ReturnProductVO">
+      SELECT
+        ret_pro.order_product_id AS product_id,
+        ord_pro.product_name,
+        ord_pro.list_image_url,
+        ret_pro.return_amt,
+        ret_pro.return_quantity  AS quantity
+    FROM
+        o_return_product ret_pro
+    INNER JOIN o_order_product ord_pro ON ret_pro.order_product_id = ord_pro.id
+    where ret_pro.return_id=#{return_id}
+    </select>
+
+</mapper>

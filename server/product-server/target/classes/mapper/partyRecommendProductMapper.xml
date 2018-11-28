@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.PartyRecommendProductMapper">
+
+    <select id="selectPartyRecommendProduct" parameterType="Long" resultType="com.hryj.entity.vo.product.partyprod.mapping.PartyRecommendProductMappingRow">
+        SELECT t1.id as recommend_product_id,
+        t1.product_id,
+        t1.start_date,
+        t1.end_date,
+        t1.top_flag,
+        t2.sale_price,
+        t3.product_name,
+        t3.prod_cate_path as category_name,
+        t3.brand,
+        t3.specification,
+        t3.list_image_url
+        from p_party_recommend_product t1
+        LEFT JOIN p_party_product t2 on t1.product_id = t2.product_id and t1.party_id = t2.party_id
+        LEFT JOIN p_product_info t3 on t1.product_id = t3.id
+        LEFT JOIN p_brand t4 on t3.brand = t4.id
+        where t1.party_id = #{party_id}
+        order by t1.top_flag desc, t1.update_time desc
+    </select>
+
+    <select id="selectManyPartyRecommendProd" parameterType="Map" resultType="com.hryj.entity.vo.product.response.app.AppProdListItemResponseVO">
+        SELECT
+        t1.party_id,
+        t1.product_id,
+        t3.product_name,
+        t3.list_image_url,
+        t3.specification,
+        t3.product_type_id,
+        t2.sale_price,
+        t2.inventory_quantity
+        from p_party_recommend_product t1
+        LEFT JOIN p_party_product t2 on t1.party_id = t2.party_id and t1.product_id = t2.product_id
+        LEFT JOIN p_product_info t3 on t1.product_id = t3.id
+        LEFT JOIN p_cross_border t4 on t3.id = t4.id
+        <where>
+            <if test="party_id != null">
+                t1.party_id = #{party_id}
+            </if>
+            <if test="party_id_list != null">
+                and t1.party_id in
+                <foreach collection="party_id_list" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="start_date != null">
+                and t1.start_date &lt;= #{start_date}
+            </if>
+            <if test="end_date != null">
+                and t1.end_date &gt;= #{end_date}
+            </if>
+            <if test="forbid_sale_flag != null">
+                and t3.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+            </if>
+            <if test="up_down_status != null">
+                and t2.up_down_status = #{up_down_status}
+            </if>
+            <if test="inventory_quantity != null">
+                and (t2.inventory_quantity &gt; #{inventory_quantity} or t4.inventory_quantity &gt; #{inventory_quantity})
+            </if>
+            <if test="product_type_id != null">
+                and t3.product_type_id = #{product_type_id}
+            </if>
+        </where>
+        ORDER BY t1.top_flag DESC, t1.update_time DESC
+        <if test="limit_start != null and limit_end != null">
+            limit #{limit_start}, #{limit_end}
+        </if>
+    </select>
+
+    <select id="selectAvailablePartyRecommendProd" parameterType="Map" resultType="com.hryj.entity.bo.product.recommend.PartyRecommendProduct">
+        SELECT t1.product_id, t1.party_id, t1.top_flag
+        from p_party_recommend_product t1
+        LEFT JOIN p_party_product t2 on t1.party_id = t2.party_id and t1.product_id = t2.product_id
+        left join p_product_info t3 on t1.product_id = t3.id
+        <where>
+            <if test="party_id_set != null">
+                t1.party_id in
+                <foreach collection="party_id_set" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="forbid_sale_flag != null">
+                and t3.forbid_sale_flag &lt;&gt; #{forbid_sale_flag}
+            </if>
+            <if test="up_down_status != null">
+                and t3.up_down_status = #{up_down_status}
+            </if>
+            <if test="start_date != null">
+                and (t1.start_date is null or t1.start_date &lt;= #{start_date})
+            </if>
+            <if test="end_date != null">
+                and (t1.end_date is null or t1.end_date &gt; #{end_date})
+            </if>
+        </where>
+        ORDER BY t1.top_flag DESC
+    </select>
+</mapper>

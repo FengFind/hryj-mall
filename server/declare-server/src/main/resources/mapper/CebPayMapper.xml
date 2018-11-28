@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.CebPayMapper">
+
+    <!--根据编号查询-->
+    <update id="updateStatus" parameterType="java.util.Map">
+      UPDATE dec_ceb_pay SET pay_status = #{payStatus}, pay_declare_no = #{payDeclareNo} WHERE id = #{id}
+    </update>
+
+</mapper>

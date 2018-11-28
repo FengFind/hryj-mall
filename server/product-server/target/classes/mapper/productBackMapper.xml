@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ProductBackupMapper">
+
+    <select id="selectProdAuditPage" parameterType="Map" resultType="com.hryj.entity.vo.product.audit.mapping.ProductAuditPageMappingItem">
+        SELECT
+        t1.id as product_backup_id,
+        t1.product_id,
+        t1.updated_user as submit_by,
+        DATE_FORMAT(t1.update_time,'%Y-%m-%d %H:%i:%s') as submit_time,
+        t2.product_name,
+        t2.prod_cate_path as category_name,
+        t2.brand,
+        t2.list_image_url,
+        t2.product_type_id,
+        t3.handle_staff_name as handled_by,
+        DATE_FORMAT(t3.handle_time,'%Y-%m-%d %H:%i:%s') as handled_time,
+        t3.handle_result as handled_result
+        FROM p_product_backup t1
+        LEFT JOIN p_product_info t2 ON t1.product_id = t2.id
+        LEFT JOIN p_product_audit_record t3 on t1.id = t3.prod_backup_data_id
+        LEFT JOIN p_brand t4 on t2.brand = t4.id
+        <where>
+            <if test="product_id != null">
+                t1.product_id like CONCAT('%', #{product_id}, '%')
+            </if>
+            <if test="audit_status != null">
+                and t1.handle_status = #{audit_status}
+            </if>
+            <if test="product_type_id != null">
+                and t2.product_type_id = #{product_type_id}
+            </if>
+            <if test="product_type_id_list != null">
+                and t2.product_type_id in
+                <foreach collection="product_type_id_list" item="item" index="i" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="prod_name != null">
+                and t2.product_name like CONCAT('%', #{prod_name}, '%')
+            </if>
+            <if test="brand_id != null">
+                and t2.brand = #{brand_id}
+            </if>
+            <if test="brand_name != null">
+                and t4.brand_name like CONCAT('%', #{brand_name}, '%')
+            </if>
+            <if test="cate_name != null">
+                and t2.prod_cate_path like CONCAT('%', #{cate_name}, '%')
+            </if>
+            <if test="cate_id != null">
+                and t2.prod_cate_id = #{cate_id}
+            </if>
+            <if test="cate_id_set != null">
+                and t2.prod_cate_id in
+                <foreach collection="cate_id_set" index="i" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="submit_by != null">
+                and t1.updated_user like CONCAT('%', #{submit_by}, '%')
+            </if>
+            <if test="submit_time_begin != null">
+                and t1.update_time &gt;= #{submit_time_begin}
+            </if>
+            <if test="submit_time_end != null">
+                and t1.update_time &lt;= #{submit_time_end}
+            </if>
+            <if test="handle_by != null">
+                and t3.handle_staff_name like CONCAT('%', #{handle_by}, '%')
+            </if>
+            <if test="handled_time_begin != null">
+                and t3.handle_time &gt;= #{handled_time_begin}
+            </if>
+            <if test="handled_time_end != null">
+                and t3.handle_time &lt;= #{handled_time_end}
+            </if>
+            <if test="handle_result != null">
+                and t3.handle_result = #{handle_result}
+            </if>
+        </where>
+        <if test="audit_status == null">
+            order by t1.update_time desc, t3.handle_time desc
+        </if>
+        <if test="audit_status != null and audit_status == 0">
+            order by t1.update_time desc
+        </if>
+        <if test="audit_status != null and audit_status == 1">
+            order by t3.handle_time desc
+        </if>
+    </select>
+</mapper>

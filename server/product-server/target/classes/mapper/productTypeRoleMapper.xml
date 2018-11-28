@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.prodtype.ProductTypeRoleMapper">
+
+
+    <select id="findRolePermission"
+            resultType="com.hryj.entity.vo.product.prodtype.ProductTypeRoleAndProductType">
+        <if test="role_id != null">
+            SELECT t1.*, t2.description
+            from p_product_type_role t1
+            LEFT JOIN p_product_type t2 on t1.product_type_id = t2.product_type_id
+            where t1.role_id = #{role_id}
+        </if>
+    </select>
+
+    <select id="findStaffPermission"
+            resultType="com.hryj.entity.vo.product.prodtype.ProductTypeRoleAndProductType">
+        <if test="staff_id != null">
+            SELECT t1.*, t2.description
+            from p_product_type_role t1
+            LEFT JOIN p_product_type t2 on t1.product_type_id = t2.product_type_id
+            where t1.staff_id = #{staff_id}
+        </if>
+    </select>
+</mapper>

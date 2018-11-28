@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.CebCustomerMapper">
+
+    <!--根据关区编号查询-->
+    <select id="findByCustomerCode" parameterType="com.hryj.entity.bo.declare.CebCustomer" resultType="com.hryj.entity.bo.declare.CebCustomer">
+        SELECT * FROM dec_ceb_customer
+        WHERE
+        customer_code = #{customer.customerCode}
+        <if test="VO.distribution_type != null">
+          AND sortline_id=#{customer.sortlineId}
+        </if>
+    </select>
+
+</mapper>

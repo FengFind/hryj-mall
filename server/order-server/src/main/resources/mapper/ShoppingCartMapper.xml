@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ShoppingCartMapper">
+
+    <!--查询购物车记录-->
+    <select id="getShoppingCartRecord" resultType="com.hryj.entity.bo.cart.ShoppingCartRecord">
+        select * from sc_shopping_cart_record
+        <where>
+            cart_type !='04'
+            <if test="cart.user_id != null">
+                and user_id=#{cart.user_id}
+            </if>
+            <if test="cart.party_id != null">
+                and party_id=#{cart.party_id}
+            </if>
+            <if test="cart.product_id != null">
+                and product_id=#{cart.product_id}
+            </if>
+            <if test="cart.activity_id != null and cart.activity_id !=0">
+                and activity_id=#{cart.activity_id}
+            </if>
+            <if test="cart.activity_id == null">
+                and activity_id is null
+            </if>
+            <if test="help_staff_id != null and help_staff_id!=0">
+                and help_staff_id=#{help_staff_id}
+            </if>
+            <if test="help_staff_id == null">
+                and help_staff_id is null
+            </if>
+        </where>
+    </select>
+
+    <!--加入购物车时获取商品的价格-->
+    <select id="getProductPrice" parameterType="com.hryj.entity.vo.cart.request.ShoppingCartRequestVO" resultType="map">
+        SELECT
+        par.sale_price,
+        item.activity_price
+        FROM
+        p_party_product par LEFT JOIN pt_activity_product_item item ON par.product_id=item.product_id
+        and item.activity_id=#{activity_id}
+
+        <where>
+            <if test="party_id != null">
+                and par.party_id=#{party_id}
+            </if>
+            <if test="product_id != null">
+                and par.product_id=#{product_id}
+            </if>
+        </where>
+
+
+    </select>
+
+    <!--获取购物车记录对应门店信息-->
+    <select id="findPartyList" resultType="com.hryj.entity.bo.cart.ShoppingCartRecord">
+        SELECT
+        *
+        FROM
+        sc_shopping_cart_record sc
+        <where>
+            sc.cart_type !='04'
+            <if test="help_staff_id != null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id=#{help_staff_id}
+            </if>
+
+            <if test="help_staff_id == null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id is null
+            </if>
+        </where>
+        ORDER BY
+        sc.create_time DESC
+    </select>
+
+    <!--根据门店和用户ID查询商品信息-->
+    <select id="findCartPoductList" resultType="com.hryj.entity.vo.cart.ShoppingCartPoductVO">
+          SELECT
+            sc.id AS cart_record_id,
+            proinfo.product_name,
+            proinfo.list_image_url,
+            sc.into_cart_price,
+            pro.sale_price,
+            pro.inventory_quantity,
+            sc.quantity,
+            sc.activity_id,
+            sc.party_id,
+            sc.product_id,
+            actinfo.activity_name,
+            actinfo.activity_type,
+            actinfo.activity_mark_image,
+            act.activity_price
+        FROM
+            sc_shopping_cart_record sc
+        LEFT JOIN p_party_product pro ON sc.party_id = pro.party_id AND pro.product_id=sc.product_id
+        LEFT JOIN p_product_info proinfo ON pro.product_id=proinfo.id
+        LEFT JOIN pt_activity_product_item act ON sc.activity_id=act.activity_id and act.product_id=sc.product_id
+        LEFT JOIN pt_activity_info actinfo ON act.activity_id=actinfo.id
+        where sc.user_id=#{VO.user_id} and sc.party_id=#{VO.party_id}
+          and sc.cart_type !='04'
+        <if test="VO.help_staff_id != null">
+            and sc.help_staff_id=#{VO.help_staff_id}
+        </if>
+        <if test="VO.help_staff_id == null">
+            and sc.help_staff_id is null
+        </if>
+      ORDER BY
+	  sc.create_time DESC
+    </select>
+
+    <!--获取无效的购物车列表-->
+    <select id="findInvalidCartProductList" resultType="com.hryj.entity.vo.cart.InvalidCartProductVO">
+        SELECT
+        sc.id as cart_record_id,
+        sc.product_id,
+        pinfo.product_name,
+        pinfo.list_image_url,
+        sc.into_cart_price,
+        pro.sale_price,
+        sc.quantity,
+        prt.activity_price
+        FROM
+        sc_shopping_cart_record sc
+        LEFT JOIN p_party_product pro ON sc.party_id = pro.party_id AND sc.product_id = pro.product_id
+        LEFT JOIN p_product_info pinfo ON pro.product_id = pinfo.id
+        LEFT JOIN pt_activity_scope_item sct ON sc.activity_id = sct.activity_id AND sc.party_id=sct.party_id
+        LEFT JOIN pt_activity_product_item prt ON sc.activity_id=prt.activity_id AND sc.product_id=prt.product_id
+        WHERE
+        (pro.up_down_status = 0 OR sct.end_date > NOW())
+
+        <if test="help_staff_id != null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id=#{help_staff_id}
+        </if>
+
+        <if test="help_staff_id == null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id is null
+        </if>
+
+    </select>
+
+    <!--删除购物车商品-->
+    <delete id="deleteShoppingCartItem" parameterType="java.util.List">
+
+        delete from sc_shopping_cart_record where id in
+
+        <foreach collection="list" item="fileId" index="index" open="(" close=")" separator=",">
+            #{fileId}
+        </foreach>
+
+    </delete>
+
+    <!--删除购物车商品(List<Long>)-->
+    <delete id="deleteShoppingCartByIds" parameterType="java.util.List">
+
+        delete from sc_shopping_cart_record where id in
+
+        <foreach collection="list" item="fileId" index="index" open="(" close=")" separator=",">
+            #{fileId}
+        </foreach>
+
+    </delete>
+
+
+    <!--清除购物车无效商品-->
+    <delete id="clearInvalidProduct">
+        delete from sc_shopping_cart_record where id in(
+        select id from(
+        select
+        sc.id
+        FROM
+        sc_shopping_cart_record sc
+        LEFT JOIN p_party_product pro ON sc.party_id = pro.party_id AND sc.product_id = pro.product_id
+        LEFT JOIN pt_activity_scope_item sct ON sc.activity_id = sct.activity_id and sc.party_id=sct.party_id
+        LEFT JOIN pt_activity_product_item prt ON sc.activity_id=prt.activity_id AND sc.product_id=prt.product_id
+        WHERE
+        pro.up_down_status = #{upDownStatus}
+        <if test="help_staff_id != null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id=#{help_staff_id}
+        </if>
+
+        <if test="help_staff_id == null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id is null
+        </if>
+        UNION ALL
+        select
+        sc.id
+        FROM
+        sc_shopping_cart_record sc
+        LEFT JOIN p_party_product pro ON sc.party_id = pro.party_id AND sc.product_id = pro.product_id
+        LEFT JOIN pt_activity_scope_item sct ON sc.activity_id = sct.activity_id and sc.party_id=sct.party_id
+        LEFT JOIN pt_activity_product_item prt ON sc.activity_id=prt.activity_id AND sc.product_id=prt.product_id
+        WHERE
+        sct.end_date > NOW()
+        <if test="help_staff_id != null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id=#{help_staff_id}
+        </if>
+
+        <if test="help_staff_id == null">
+            and sc.user_id=#{user_id}
+            and sc.help_staff_id is null
+        </if>
+
+        ) as tab
+        )
+
+    </delete>
+
+    <!--根据购物车编号获取购物车记录-->
+    <select id="findShoppingCartRecordList" parameterType="java.util.List"
+            resultType="com.hryj.entity.bo.cart.ShoppingCartRecord">
+        select * from sc_shopping_cart_record where id in
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        ORDER BY
+        create_time DESC
+
+    </select>
+
+
+    <!--查询用户购物车记录总数-->
+    <select id="getCartProductNum" resultType="java.lang.Integer">
+        select count(*) as num from
+
+        sc_shopping_cart_record sc
+
+        <where>
+            sc.cart_type !='04'
+            <if test="help_staff_id != null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id=#{help_staff_id}
+            </if>
+
+            <if test="help_staff_id == null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id is null
+            </if>
+        </where>
+
+    </select>
+    <!--根据购物车生成订单-->
+    <select id="findShoppingCartRecordListByIdsCreateOrderNew" parameterType="java.util.List"
+            resultType="com.hryj.entity.vo.order.OrderCreateFromCartVO">
+        SELECT
+        scr.party_id,
+        scr.help_staff_id,
+        scr.product_id,
+        scr.activity_id,
+        scr.id cart_record_id,
+        scr.quantity,
+        scr.share_user_id,
+        scr.share_source
+        FROM
+        sc_shopping_cart_record scr
+        where scr.id in
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+
+    </select>
+
+
+
+    <!--根据购物车生成订单-->
+    <select id="findShoppingCartRecordListByIdsCreateOrder" parameterType="java.util.List"
+            resultType="com.hryj.entity.vo.order.OrderCreateFromCartVO">
+        SELECT
+        scr.app_key,
+        scr.party_id,
+        scr.help_staff_id,
+        scr.product_id,
+        scr.activity_id,
+        scr.id cart_record_id,
+        scr.quantity,
+        scr.share_user_id,
+        scr.share_source,
+        ppp.sale_price,
+        ppp.inventory_quantity,
+        ppi.cost_price,
+        ppi.sales_end_date,
+        ppi.up_down_status,
+        ppi.forbid_sale_flag,
+        ppi.prod_cate_id,
+        ppi.list_image_url,
+        ppi.product_name,
+        sdg.dept_name party_name,
+        sdg.dept_path party_path,
+        sdg.dept_type party_type
+        FROM
+        sc_shopping_cart_record scr
+        LEFT JOIN sf_dept_group sdg ON scr.party_id = sdg.id
+        LEFT JOIN p_product_info ppi ON ppi.id = scr.product_id
+        LEFT JOIN p_party_product ppp ON ppp.party_id = sdg.id
+        AND ppp.product_id = ppi.id
+        where scr.id in
+        <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+
+    </select>
+
+    <!--查询用户购物车列表-->
+    <select id="findCartRecordList" resultType="com.hryj.entity.bo.cart.ShoppingCartRecord">
+        select * from sc_shopping_cart_record sc
+        <where>
+            sc.cart_type !='04'
+            <if test="help_staff_id != null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id=#{help_staff_id}
+            </if>
+
+            <if test="help_staff_id == null">
+                and sc.user_id=#{user_id}
+                and sc.help_staff_id is null
+            </if>
+        </where>
+        ORDER BY
+        sc.create_time DESC
+    </select>
+
+
+    <!--查询用户同门店同商品数量-->
+    <select id="getUserPartyProductNum" resultType="java.lang.Integer">
+        SELECT
+        SUM(cart.quantity) as total_quantity
+        FROM
+        sc_shopping_cart_record cart
+        <where>
+            cart_type !='04'
+            <if test="cart.user_id != null">
+                and user_id=#{cart.user_id}
+            </if>
+            <if test="cart.party_id != null">
+                and party_id=#{cart.party_id}
+            </if>
+            <if test="cart.product_id != null">
+                and product_id=#{cart.product_id}
+            </if>
+            <if test="help_staff_id != null and help_staff_id!=0">
+                and help_staff_id=#{help_staff_id}
+            </if>
+            <if test="help_staff_id == null">
+                and help_staff_id is null
+            </if>
+            <if test="cart_type != null">
+                and cart_type =#{cart_type}
+            </if>
+        </where>
+    </select>
+
+    <!--获取购物车商品详细信息提供页面展示-->
+    <select id="findCartProductInfo" parameterType="com.hryj.entity.bo.cart.ShoppingCartRecord"  resultType="com.hryj.entity.vo.cart.ShoppingCartPoductVO">
+        SELECT
+        cart.id as cart_record_id,
+        cart.product_id,
+        product.product_name,
+        product.list_image_url,
+        cart.into_cart_price,
+        par_pro.sale_price,
+        cart.quantity,
+        cart.activity_id,
+        activity.activity_name,
+        activity.activity_type,
+        activity.activity_mark_image,
+        <if test="activity_id != null">
+            (par_pro.sale_price-act_pro.activity_price) AS discount_amt,
+        </if>
+        act_pro.activity_price
+        FROM
+        sc_shopping_cart_record cart
+        LEFT JOIN p_product_info product ON cart.product_id=product.id
+        LEFT JOIN p_party_product par_pro ON cart.product_id=par_pro.product_id AND cart.party_id=par_pro.party_id
+        LEFT JOIN pt_activity_info activity ON cart.activity_id=activity.id
+        LEFT JOIN pt_activity_product_item act_pro ON cart.activity_id=act_pro.activity_id and
+        cart.product_id=act_pro.product_id
+        where cart.id=#{id}
+        ORDER BY
+        cart.create_time DESC
+    </select>
+</mapper>

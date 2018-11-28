@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderDistributionMapper">
+
+
+    <!--查询代配送，待处理数量-->
+    <select id="countTheStatus" parameterType="com.hryj.entity.vo.order.OrderStatusCountVO"
+            resultType="java.lang.Integer">
+          select count(distribution_status) wait_delivery_num
+          from o_order_distribution
+          where distribution_staff_id = #{distribution_staff_id}
+          and distribution_status = #{distribution_status}
+          and distribution_type = #{distribution_type}
+    </select>
+
+    <!--根据状态查询配送订单列表（门店端）-->
+    <select id="selectDistributionList" parameterType="com.hryj.entity.vo.order.request.DistributionRequestVO"
+            resultType="com.hryj.entity.bo.order.OrderDistribution">
+        SELECT
+        ood.*
+        FROM
+        o_order_distribution ood
+        WHERE ood.distribution_staff_id = #{distribution_staff_id}
+        AND ood.distribution_type = #{distribution_type}
+        AND ood.distribution_status = #{distribution_status}
+
+        <if test="start_date != null and start_date!=''">
+            AND ood.hope_delivery_start_time &gt;= #{start_date}
+        </if>
+        <if test="end_date != null and end_date!=''">
+            AND ood.hope_delivery_end_time &lt;= #{end_date}
+        </if>
+        ORDER BY
+        ood.hope_delivery_end_time
+
+    </select>
+
+
+    <!--获取配送单信息-->
+    <select id="getOrderDistributionInfo" resultType="com.hryj.entity.bo.order.OrderDistribution">
+        SELECT
+            *
+        FROM
+            o_order_distribution
+        WHERE
+          order_id = #{order_id}
+        AND distribution_type = #{distribution_type}
+    </select>
+
+    <!--确认配送完成更新订单表（门店端）-->
+    <update id="confirmDistributionDetailForOrder" parameterType="java.util.List">
+        UPDATE o_order_info ooi
+            SET ooi.order_status ='08'
+        WHERE id IN (SELECT order_id FROM o_order_distribution ood
+            WHERE  ood.order_id = ooi.id AND ood.id IN
+                <foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+                #{id}
+                </foreach>
+            )
+    </update>
+
+    <!--确认配送完成更新配送信息表（门店端）-->
+    <update id="confirmDistributionDetail" parameterType="com.hryj.entity.vo.order.ConfirmDistributionVO">
+        update o_order_distribution ood set ood.distribution_status=#{distribution_status},ood.complete_time=#{complete_time}
+        where ood.id = #{id}
+    </update>
+
+    <!-- 通过订单ID查询配送信息状态 -->
+    <select id="selectDistributionInfoByOrderId" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+          select
+            id AS distribution_id,
+            order_id,
+            distribution_type,
+            distribution_status,
+            user_id,
+            user_name,
+            user_phone,
+            user_address,
+            address_locations,
+            hope_delivery_start_time,
+            hope_delivery_end_time,
+            distribution_staff_name,
+            distribution_staff_phone
+          from o_order_distribution
+          where order_id = #{order_id}
+    </select>
+    <!-- 通过订单ID查询配送信息状态 -->
+    <select id="getOrderIdById" parameterType="java.lang.Long"
+            resultType="java.lang.Long">
+          select order_id
+          from o_order_distribution
+          where id = #{id}
+    </select>
+
+
+
+    <!--根据订单ID 更新配送单状态-->
+    <update id="updateDistributionStatusByOrderId" parameterType="com.hryj.entity.vo.order.DistributionStatusVO">
+        update o_order_distribution ood set ood.distribution_status = #{distribution_status}
+        <if test="actual_delivery_end_time!=null">
+            ,ood.actual_delivery_end_time = #{actual_delivery_end_time}
+        </if>
+        where ood.order_id = #{order_id}  and ood.distribution_type = #{distribution_type}
+    </update>
+
+    <!-- 根据订单ID 查询配送费 -->
+    <select id="getStaffDeptRelationByStaffId" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.bo.staff.user.StaffDeptRelation">
+          select salary_amt
+          from sf_staff_dept_relation
+          where staff_id = #{staff_id}
+    </select>
+
+
+    <select id="getOrderDistributionById" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.DistributionInfoVO">
+          SELECT
+            hope_delivery_end_time,
+            actual_delivery_end_time,
+            distribution_staff_id
+          FROM
+	        o_order_distribution
+          where id = #{id}
+    </select>
+
+    <!--根据门店编号获取门店待分配送货取货数量-->
+    <select id="counttWaitDistributionNum" parameterType="java.lang.Long"
+            resultType="java.lang.Integer">
+          SELECT
+            t1.num+t2.num AS wait_distribution
+              FROM
+                (
+                    (
+                        SELECT
+                            count(*) AS num
+                        FROM
+                            o_order_info info
+                        INNER JOIN o_order_distribution dis ON info.id = dis.order_id
+                        WHERE
+                            info.party_id = #{party_id}
+                        AND dis.distribution_status = '01'
+                    ) t1 ,(
+                        SELECT
+                            count(*) AS num
+                        FROM
+                            o_order_info info
+                        INNER JOIN o_order_return ret ON info.id = ret.order_id
+                        WHERE
+                            info.party_id = #{party_id}
+                        AND ret.return_status = '01'
+                    ) t2
+                  )
+    </select>
+
+
+</mapper>

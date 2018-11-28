@@ -1,0 +1,15 @@
+com\hryj\controller\ProfitAppController.class
+com\hryj\ProfitApplication.class
+com\hryj\mapper\StaffBalanceSummaryMapper.class
+com\hryj\service\ProfitService.class
+com\hryj\mapper\RegionBalanceSummaryMapper.class
+com\hryj\controller\ProfitInnerController.class
+com\hryj\feign\TaskFeignClient.class
+com\hryj\service\DataQueryService.class
+com\hryj\feign\StaffFeignClient.class
+com\hryj\mapper\RegionBalanceDetailMapper.class
+com\hryj\mapper\DeptGrossProfitBalanceMapper.class
+com\hryj\mapper\DataQueryMapper.class
+com\hryj\mapper\StoreBalanceSummaryMapper.class
+com\hryj\controller\ProfitAdminController.class
+com\hryj\feign\OrderFeignClient.class

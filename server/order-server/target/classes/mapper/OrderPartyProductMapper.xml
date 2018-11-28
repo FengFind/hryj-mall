@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderPartyProductMapper">
+
+
+    <!--更新库存-->
+    <update id="updateProductQuantity" parameterType="com.hryj.entity.vo.product.common.request.PartyProductInventoryAdjustItem">
+        update p_party_product set inventory_quantity = #{adjust_num} where party_id = #{party_id} and product_id = #{product_id}
+    </update>
+
+
+    <!-- 查询门店商品数量 -->
+    <select id="findProductQuantityById" resultType="java.lang.Integer">
+        select inventory_quantity from  p_party_product where party_id = #{party_id} and product_id = #{product_id}
+    </select>
+</mapper>

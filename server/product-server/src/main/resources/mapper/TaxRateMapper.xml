@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.TaxRateMapper">
+
+    <select id="findTaxRateListByHSCode" resultType="com.hryj.entity.vo.product.common.response.ProductTaxRateResponseVO">
+        SELECT
+            t.id as tax_rate_id,
+            t.hs_code,
+            t.goods_code,
+            t.goods_code_add,
+            t.goods_name,
+            t.low_rate,
+            t.high_rate,
+            t.consume_tax,
+            t.increment_tax,
+            t.unit_1,
+            t.unit_2,
+            t.note,
+            t.shuilv,
+            t.has_consume_tax
+        FROM
+            p_tax_rate t
+        WHERE
+            t.hs_code LIKE CONCAT('%',#{hs_code},'%')
+        LIMIT 0,10
+    </select>
+</mapper>

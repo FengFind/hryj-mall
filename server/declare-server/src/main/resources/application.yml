@@ -1,0 +1,53 @@
+server:
+    port: 10080
+    undertow:
+        io-threads: 2
+        worker-threads: 2000
+        buffer-size: 1024
+        direct-buffers: true
+    connection-timeout: 60000
+spring:
+    application:
+        name: declare-server
+    profiles:
+        active: dev
+security:
+    basic:
+        enabled: true
+    user:
+        name: admin
+        password: hryj1866
+management:
+    security:
+        enabled: false
+endpoints:
+    sensitive: false
+    refresh:
+        enabled: true
+        sensitive: false
+mybatis-plus:
+    mapper-locations: classpath:/mapper/*Mapper.xml
+    type-aliases-package: com.hryj.entity.**
+    global-config:
+        id-type: 2
+        field-strategy: 1
+        refresh-mapper: true
+        logic-delete-value: 0
+        logic-not-delete-value: 1
+        sql-injector: com.baomidou.mybatisplus.mapper.LogicSqlInjector
+    configuration:
+        cache-enabled: false
+        lazy-loading-enabled: true
+        multiple-result-sets-enabled: true
+        use-column-label: true
+        default-executor-type: REUSE
+        default-statement-timeout: 60000
+        log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+feign:
+    hystrix:
+        enabled: false
+ribbon:
+    ReadTimeout: 50000
+    ConnectTimeout: 50000
+logging:
+    config: classpath:logback.xml

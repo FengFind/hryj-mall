@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderForUserAppMapper">
+
+    <!--获取购物车商品详细-->
+    <select id="getCartPoductDetails" parameterType="com.hryj.entity.bo.cart.ShoppingCartRecord"
+            resultType="com.hryj.entity.vo.cart.ShoppingCartPoductVO">
+        SELECT
+        cart.id as cart_record_id,
+        cart.product_id,
+        product.product_name,
+        product.list_image_url,
+        cart.into_cart_price,
+        par_pro.sale_price,
+        cart.quantity,
+        cart.activity_id,
+        activity.activity_name,
+        activity.activity_type,
+        activity.activity_mark_image,
+        <if test="activity_id != null">
+            (par_pro.sale_price-act_pro.activity_price) AS discount_amt,
+        </if>
+        act_pro.activity_price
+        FROM
+        sc_shopping_cart_record cart
+        LEFT JOIN p_product_info product ON cart.product_id=product.id
+        LEFT JOIN p_party_product par_pro ON cart.product_id=par_pro.product_id AND cart.party_id=par_pro.party_id
+        LEFT JOIN pt_activity_info activity ON cart.activity_id=activity.id
+        LEFT JOIN pt_activity_product_item act_pro ON cart.activity_id=act_pro.activity_id and
+        cart.product_id=act_pro.product_id
+        where cart.id=#{id}
+        ORDER BY
+        cart.create_time DESC
+    </select>
+
+    <!--查询用户待支付订单-->
+    <select id="findWaitPayOrderList" resultType="com.hryj.entity.vo.order.OrderListInfoVO"
+            parameterType="com.hryj.entity.vo.order.request.OrderListRequestVO">
+        SELECT
+        info.id AS order_id,
+        info.order_num,
+        info.order_status,
+        info.party_name,
+        info.user_id,
+        info.user_name,
+        info.user_phone,
+        info.user_address,
+        info.pay_method,
+        info.delivery_type,
+        info.order_type,
+        info.party_type,
+        otype.description as order_type_name,
+        (SELECT count(*) from o_order_product where order_id=info.id) as total_num,
+        info.pay_amt as total_amount
+        FROM
+        o_order_info info
+        LEFT JOIN o_order_type otype on info.order_type=otype.order_type_id
+        where info.user_id=#{user_id}
+        and info.order_status=#{order_status}
+        <if test="help_staff_id != null">
+            and info.help_staff_id=#{help_staff_id}
+        </if>
+        ORDER BY
+        info.update_time DESC
+    </select>
+
+    <!--查询用户待支付订单(分页)-->
+    <select id="findOrderListByOrderStatus" resultType="com.hryj.entity.vo.order.OrderListInfoVO"
+            parameterType="com.hryj.entity.vo.order.request.OrderListRequestVO">
+        SELECT
+        info.id AS order_id,
+        info.order_num,
+        info.order_status,
+        info.party_name,
+        info.user_id,
+        info.user_name,
+        info.user_phone,
+        info.user_address,
+        info.pay_method,
+        info.delivery_type,
+        info.order_type,
+        otype.description as order_type_name,
+        info.party_type,
+        (SELECT count(*) from o_order_product where order_id=info.id) as total_num,
+        (SELECT count(*) from o_order_return  where order_id=info.id) as return_num,
+        info.pay_amt as total_amount
+        FROM
+        o_order_info info
+        LEFT JOIN o_order_type otype on info.order_type=otype.order_type_id
+        where info.user_id=#{user_id}
+        <if test="order_status != null and order_status!=''">
+            and info.order_status in (${order_status})
+        </if>
+
+        <if test="help_staff_id != null">
+            and info.help_staff_id=#{help_staff_id}
+        </if>
+        ORDER BY
+        info.update_time DESC
+    </select>
+
+    <!--根据订单编号获取订单基本信息-->
+    <select id="getOrderInfo" resultType="com.hryj.entity.vo.order.OrderInfoVO" parameterType="java.lang.Long">
+          SELECT
+            info.id AS order_id,
+            info.order_num,
+            info.party_id,
+	        dept.dept_name AS party_name,
+	        dept.dept_type AS party_type,
+            info.order_status,
+            info.order_amt,
+            info.discount_amt,
+            info.pay_amt,
+            info.create_time,
+            info.pay_time,
+            info.pay_method,
+            info.delivery_type
+
+        FROM
+            o_order_info info
+            LEFT JOIN sf_dept_group dept ON info.party_id=dept.id
+        where info.id=#{order_id}
+
+    </select>
+
+    <!--获取订单物流信息-->
+    <select id="getOrderLogistics" resultType="com.hryj.entity.vo.order.OrderLogisticsVO">
+    SELECT
+            pick.self_pick_code as take_self_code,
+            dis.distribution_staff_name,
+            dis.distribution_staff_phone,
+            dis.distribution_status,
+            DATE_FORMAT(IFNULL(dis.hope_delivery_start_time,info.hope_delivery_start_time),'%Y-%m-%d %H:%i') AS hope_delivery_start_time,
+            DATE_FORMAT(IFNULL(dis.actual_delivery_end_time,info.hope_delivery_end_time),'%Y-%m-%d %H:%i') AS hope_delivery_end_time,
+            exp.express_name,
+            exp.express_code,
+            info.user_name,
+            info.receive_phone as user_phone,
+            info.user_address
+    FROM
+        o_order_info info
+    LEFT JOIN o_order_self_pick pick ON info.id = pick.order_id
+    LEFT JOIN o_order_distribution dis ON info.id = dis.order_id and dis.distribution_type=#{distributionType}
+    LEFT JOIN o_order_express exp ON info.id = exp.order_id
+      where info.id=#{order_id}
+    </select>
+
+    <!--查询用户个订单状态个数-->
+    <select id="getOrderDifferentStateNum" resultType="com.hryj.entity.vo.order.response.OrderDifferentStateNumResponseVO">
+
+        SELECT * from
+            (SELECT count(*) AS unpay  from o_order_info where order_status=#{value1} and user_id=#{userId}) as t1,
+            (SELECT count(*) AS wait_send  from o_order_info where order_status=#{value2} and user_id=#{userId})as t2,
+            (SELECT count(*) AS already_send  from o_order_info where order_status=#{value3} and user_id=#{userId})as t3,
+            (SELECT count(*) AS return_midway  from o_order_info where order_status=#{value4} and user_id=#{userId})as t5
+
+    </select>
+
+
+</mapper>

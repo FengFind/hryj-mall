@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.DeptGroupMapper">
+
+    <resultMap id="BaseResultMap" type="com.hryj.entity.bo.staff.dept.DeptGroup">
+        <id column="id"/>
+        <result column="dept_name" property="dept_name"/>
+        <result column="dept_pid" property="dept_pid"/>
+        <result column="dept_level" property="dept_level"/>
+        <result column="dept_type" property="dept_type"/>
+        <result column="company_flag" property="company_flag"/>
+        <result column="end_flag" property="end_flag"/>
+        <result column="dept_path" property="dept_path"/>
+        <result column="operator_id" property="operator_id"/>
+        <result column="create_time" property="create_time"/>
+        <result column="update_time" property="update_time"/>
+    </resultMap>
+
+    <select id="getDeptTree" parameterType="com.hryj.entity.vo.staff.dept.request.DeptTreeRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupTreeResponseVO">
+        select  g.id 'key',
+                g.id 'value',
+                g.dept_name title,
+                g.dept_pid,
+                g.end_flag,
+                g.dept_type,
+                g.dept_path,
+                g.company_flag,
+                (select IF(count(dept.id)=0,'true','false') from sf_dept_group dept WHERE dept.dept_pid = g.id) isLeaf
+        from    sf_dept_group g
+        where   g.dept_status = 1
+        <if test="dept_name !=null and dept_name!=''">
+            and g.dept_name like CONCAT('%','${dept_name}','%')
+        </if>
+        <if test="dept_type !=null and dept_type!=''">
+            and g.dept_type = #{dept_type}
+        </if>
+
+        <if test="end_flag !=null and end_flag==1">
+            and g.end_flag = #{end_flag}
+        </if>
+
+    </select>
+
+    <!--根据当前部门pid_id查询所有父级-->
+    <select id="getDeptParentList" resultType="com.hryj.entity.vo.staff.dept.response.DeptParentListResponseVO">
+        SELECT
+        g.id dept_id,
+        g.dept_name
+        FROM sf_dept_group g WHERE g.id IN
+        <foreach item="id" collection="ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+
+        ORDER BY g.dept_level asc
+
+    </select>
+
+    <!--根据部门id查询部门员工列表-->
+    <select id="getStaffListByDeptId" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptStaffListResponseVO">
+        SELECT
+            u.id staff_id,
+            u.staff_account,
+            u.staff_name,
+            u.phone_num,
+            u.staff_type,
+            sdr.salary_amt,
+            sdr.dept_id,
+            dept.dept_name,
+            (case when (select w.id from sf_dept_share_config w where w.staff_id= u.id LIMIT 1) is null then '0' else '1' end) is_share
+        FROM
+            sf_staff_dept_relation sdr
+        LEFT JOIN sf_staff_user_info u ON u.id = sdr.staff_id
+        LEFT JOIN sf_dept_group dept on dept.id= sdr.dept_id
+        WHERE sdr.dept_id= #{dept_id} and sdr.staff_status = 1 and u.staff_type in('01','02')
+    </select>
+
+    <!-- 查询底下门店或者仓库的id集合 -->
+    <select id="findChildPartyIdList" resultType="java.util.Map">
+        SELECT
+        GROUP_CONCAT(sdg.id) AS deptIdList
+        FROM
+        sf_dept_group sdg
+        <where>
+            AND sdg.end_flag = 1
+            AND sdg.dept_status =1
+            <if test="dept_type !=null">
+                AND sdg.dept_type = #{dept_type}
+            </if>
+            <if test="dept_path !=null">
+                AND sdg.dept_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询所有的门店或者仓库的id集合 -->
+    <select id="findAllPartyIdList" resultType="java.util.Map">
+        SELECT
+        GROUP_CONCAT(sdg.id) AS deptIdList
+        FROM
+        sf_dept_group sdg
+        <where>
+            AND sdg.end_flag = 1
+            AND sdg.dept_status =1
+            <if test="dept_type !=null">
+                AND sdg.dept_type = #{dept_type}
+            </if>
+        </where>
+    </select>
+
+
+    <!--根据部门id查询向上的所有部门列表-->
+    <select id="getDeptIdByUpDeptList" resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupListResponseVO">
+        SELECT
+        g.id dept_id,
+        g.dept_name
+        FROM sf_dept_group g WHERE g.id IN
+        <foreach item="id" collection="ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        ORDER BY g.dept_level asc
+
+    </select>
+
+    <!-- 根据门店id查询详情查询映射结果 -->
+    <resultMap id="getDeptGroupAreaResultMap"
+               type="com.hryj.entity.vo.staff.dept.response.DeptDetAndDistributionAreaResponseVO">
+        <id column="id" property="id"/>
+        <result column="dept_name" property="dept_name"/>
+        <result column="dept_pid" property="dept_pid"/>
+        <result column="dept_type" property="dept_type"/>
+        <result column="dept_level" property="dept_level"/>
+        <result column="company_flag" property="company_flag"/>
+        <result column="dept_path" property="dept_path"/>
+        <result column="dept_status" property="dept_status"/>
+
+        <result column="province_code" property="province_code"/>
+        <result column="province_name" property="province_name"/>
+        <result column="city_code" property="city_code"/>
+        <result column="city_name" property="city_name"/>
+        <result column="area_code" property="area_code"/>
+        <result column="area_name" property="area_name"/>
+        <result column="street_code" property="street_code"/>
+        <result column="street_name" property="street_name"/>
+        <result column="detail_address" property="detail_address"/>
+        <result column="locations" property="locations"/>
+
+
+        <!--配送区域-->
+        <collection property="deptDistributionAreaResponseVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.dept.response.DeptDistributionAreaResponseVO">
+            <id column="area_id" property="id"/>
+            <result column="address" property="address"/>
+        </collection>
+    </resultMap>
+    <!--根据组织id获取门店基本信息与配送范围VO-->
+    <select id="getDeptGroupStoreArea" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO"
+            resultMap="getDeptGroupAreaResultMap">
+        SELECT
+         dept.id,
+         dept.dept_name,
+         dept.dept_pid,
+         dept.dept_level,
+         dept.dept_type,
+         dept.company_flag,
+         dept.dept_path,
+         dept.dept_status,
+
+        store.province_code,
+        store.province_name,
+        store.city_code,
+        store.city_name,
+        store.area_code,
+        store.area_name,
+        store.street_code,
+        store.street_name,
+        store.detail_address,
+        store.locations,
+
+        area.id area_id,
+        area.location_name address
+        from sf_dept_group dept
+        LEFT JOIN sf_store_info store on dept.id= store.id
+        LEFT JOIN sf_store_distribution_area area on dept.id = area.dept_id
+        where dept.id = #{dept_id}
+
+    </select>
+
+
+    <!--根据组织id获取仓库基本信息与配送范围VO-->
+    <select id="getDeptGroupWHArea" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO"
+            resultMap="getDeptGroupAreaResultMap">
+
+        SELECT
+             dept.id,
+             dept.dept_name,
+             dept.dept_pid,
+             dept.dept_level,
+             dept.dept_type,
+             dept.company_flag,
+             dept.dept_path,
+             dept.dept_status,
+
+            wh.province_code,
+            wh.province_name,
+            wh.city_code,
+            wh.city_name,
+            wh.area_code,
+            wh.area_name,
+            wh.street_code,
+            wh.street_name,
+            wh.detail_address,
+            wh.locations,
+
+            area.id area_id,
+            area.city_name address
+
+        from sf_dept_group dept
+        LEFT JOIN sf_warehouse_info wh on dept.id= wh.id
+        LEFT JOIN sf_wh_distribution_area area on dept.id = area.dept_id
+         where dept.id = #{dept_id}
+    </select>
+
+    <!--组织列表-->
+    <select id="getAppTeamDataDept" resultType="com.hryj.entity.vo.staff.team.response.AppTeamDataDeptResponseVO">
+        SELECT
+           dept.id dept_id,
+           dept.dept_name
+         from sf_dept_group dept
+         where dept.end_flag =0 and dept.dept_type='03' and dept.dept_path like '${dept_path}%'
+        ORDER BY dept.dept_level asc
+
+    </select>
+
+    <!-- 根据部门id集合查询详情-->
+    <select id="getAppDeptGroupBasicInfo"
+            parameterType="com.hryj.entity.vo.staff.dept.request.DeptGroupBasicInfoRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupResponseVO">
+        SELECT
+        id dept_id,
+        dept_name,
+        dept_pid,
+        dept_level,
+        dept_type,
+        company_flag,
+        end_flag,
+        dept_path,
+        dept_status,
+        operator_id,
+        date_format(create_time,'%y-%m-%d %h:%i:%s') create_time,
+        date_format(update_time,'%y-%m-%d %h:%i:%s') update_time
+
+        from sf_dept_group
+        WHERE id in
+        <foreach item="id" collection="dept_ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        <!-- 员工姓名-->
+        <if test="dept_name !=null and dept_name != ''">
+            and dept_name like CONCAT('%','${dept_name}','%')
+        </if>
+
+    </select>
+
+    <select id="getDeptStoreOrWarehouseList"
+            parameterType="com.hryj.entity.vo.staff.dept.request.DeptStoreOrWarehouseRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptStoreOrWarehouseResponseVO">
+        SELECT
+        id dept_id,
+        dept_name,
+        dept_type
+
+        from sf_dept_group
+        WHERE dept_path like '%${dept_id}%'
+        <if test="dept_type !=null and dept_type != ''">
+            and dept_type = #{dept_type}
+        </if>
+
+    </select>
+
+    <!--获取员工变更后记录-->
+    <select id="getAfterStaffDeptChangeRecord" resultType="com.hryj.entity.bo.profit.StaffDeptChangeRecord">
+
+        SELECT
+            staff.id staff_id,
+            staff.staff_name,
+            dept.id after_dept_id,
+            dept.dept_name after_dept_name
+        FROM
+            sf_staff_dept_relation ssdr
+        LEFT JOIN sf_staff_user_info staff ON ssdr.staff_id = staff.id
+        LEFT JOIN sf_dept_group dept ON ssdr.dept_id = dept.id
+        WHERE ssdr.staff_id = #{staff_id} and dept.id = #{after_dept_id}
+
+    </select>
+    <!--根据部门id查询下面所有组织-->
+    <select id="getDeptIdByDownDeptTree" resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupTreeResponseVO">
+        SELECT
+        g.id 'key',
+        g.id 'value',
+        g.dept_name title,
+        g.dept_pid,
+        g.end_flag,
+        g.dept_type,
+        g.dept_path
+        FROM sf_dept_group g where g.dept_path like  '%${dept_id}%'
+    </select>
+    <!-- 查询分流员工列表 内置员工不能设置分润-->
+    <select id="getDeptIdByShareList" parameterType="com.hryj.entity.vo.staff.dept.request.DeptShareRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptStaffListResponseVO">
+        SELECT
+            u.id staff_id,
+            u.staff_account,
+            u.staff_name,
+            u.phone_num,
+            u.staff_type,
+            sdr.salary_amt,
+            sdr.dept_id,
+            dept.dept_name,
+            (case when (select w.id from sf_dept_share_config w where w.staff_id= u.id LIMIT 1) is null then '0' else '1' end) is_share
+        FROM
+            sf_staff_dept_relation sdr
+        LEFT JOIN sf_staff_user_info u ON u.id = sdr.staff_id
+        LEFT JOIN sf_dept_group dept on dept.id= sdr.dept_id
+        WHERE sdr.dept_id= #{dept_id} and sdr.staff_status = 1 and u.staff_type ='01'
+    </select>
+    <select id="getAppDeptIdsByStoreOrWarehouseDet"
+            parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdsRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptIdByStoreOrWarehouseResponseVO">
+            select    store.id dept_id,
+                      store.detail_address,
+                      store.telephone,
+                      store.contact_name,
+                      store.province_code,
+                      store.province_name,
+                      store.city_code,
+                      store.city_name,
+                      store.area_code,
+                      store.area_name,
+                      dept.dept_name,
+                      dept.dept_status,
+                      dept.dept_type,
+                      dept.dept_path,
+                      store.business_time_start,
+                      store.business_time_end
+            from      sf_store_info store
+            left join sf_dept_group dept on store.id= dept.id
+            where     store.id in
+            <foreach item="id" collection="dept_ids" open="(" close=")" separator=",">
+              #{id}
+            </foreach>
+            union all
+            select    warehouse.id dept_id,
+                      warehouse.detail_address,
+                      warehouse.telephone,
+                      warehouse.contact_name,
+                      warehouse.province_code,
+                      warehouse.province_name,
+                      warehouse.city_code,
+                      warehouse.city_name,
+                      warehouse.area_code,
+                      warehouse.area_name,
+                      dept.dept_name,
+                      dept.dept_status,
+                      dept.dept_type,
+                      dept.dept_path,
+                      @business_time_start business_time_start,
+                      @business_time_end business_time_end
+            from      sf_warehouse_info  warehouse
+            left join sf_dept_group dept on warehouse.id= dept.id
+            where     warehouse.id in
+            <foreach item="id" collection="dept_ids" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
+
+    </select>
+    <select id="getDeptPidList" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO" resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupPidResponseVO">
+         SELECT g.id 'key',
+                g.id 'value',
+                g.dept_name title,
+                g.dept_pid,
+                g.end_flag,
+                g.dept_type,
+                g.dept_path,
+                g.company_flag,
+                (select IF(count(dept.id)=0,'true','false') from sf_dept_group dept WHERE dept.dept_pid = g.id) isLeaf
+         FROM   sf_dept_group g
+         where  g.dept_status = 1 and g.dept_pid =#{dept_id}
+    </select>
+    <select id="getDeptIdsList" resultType="com.hryj.entity.vo.staff.dept.response.DeptGroupTreeResponseVO">
+        select g.id 'key',
+               g.id 'value',
+               g.dept_name title,
+               g.dept_pid,
+               g.end_flag,
+               g.dept_type,
+               g.dept_path,
+               g.company_flag,
+               (select IF(count(dept.id)=0,'true','false') from sf_dept_group dept WHERE dept.dept_pid = g.id) isLeaf
+        from   sf_dept_group g
+        where  g.dept_status = 1
+        and    g.id in
+        <foreach item="id" collection="ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

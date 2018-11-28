@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.StoreInfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.hryj.entity.bo.staff.store.StoreInfo">
+        <id column="id"/>
+        <result column="store_type" property="store_type"/>
+        <result column="province_code" property="province_code"/>
+        <result column="province_name" property="province_name"/>
+        <result column="city_code" property="city_code"/>
+        <result column="city_name" property="city_name"/>
+        <result column="area_code" property="area_code"/>
+        <result column="area_name" property="area_name"/>
+        <result column="street_code" property="street_code"/>
+        <result column="street_name" property="street_name"/>
+        <result column="detail_address" property="detail_address"/>
+        <result column="locations" property="locations"/>
+        <result column="telephone" property="telephone"/>
+        <result column="operator_id" property="operator_id"/>
+        <result column="create_time" property="create_time"/>
+        <result column="update_time" property="update_time"/>
+    </resultMap>
+
+
+    <select id="selectStorePageList" parameterType="Map" resultType="com.hryj.entity.bo.staff.store.StoreInfo">
+        <if test="party_id_list != null and party_id_list.size() > 0">
+            <foreach collection="party_id_list" index="index" item="item" open=" " separator="UNION ALL" close=" ">
+                select DISTINCT t1.id, t1.store_type, t1.province_name, t1.city_name, t1.area_name, t1.street_name,
+                t1.detail_address, t1.locations,
+                t1.telephone, t1.business_time_start, t1.business_time_end, t1.create_time,
+                t1.update_time, t2.dept_name as province_code
+                from sf_store_info t1
+                left join sf_dept_group t2 on t1.id = t2.id
+                left JOIN sf_staff_dept_relation t3 on t1.id = t3.dept_id
+                left join sf_staff_user_info t4 on t3.staff_id = t4.id
+                where t1.id in(${item}) and t2.dept_status = 1
+                <if test="province_code != null">
+                    and t1.province_code = #{province_code}
+                </if>
+                <if test="city_code != null">
+                    and t1.city_code = #{city_code}
+                </if>
+                <if test="area_code != null">
+                    and t1.area_code = #{area_code}
+                </if>
+                <if test="party_leader_type != null">
+                    and t3.staff_job = #{party_leader_type}
+                </if>
+                <if test="party_leader != null">
+                    and t4.staff_name like CONCAT('%', #{party_leader}, '%')
+                </if>
+                <if test="party_name != null">
+                    and t2.dept_name like CONCAT('%', #{party_name}, '%')
+                </if>
+            </foreach>
+            order by create_time desc
+        </if>
+    </select>
+
+    <!--查询门店列表-->
+    <select id="getStoreList" parameterType="com.hryj.entity.vo.staff.store.request.StoreListParamRequestVO"
+            resultType="com.hryj.entity.vo.staff.store.response.StoreListResponseVO">
+
+        select    s.id store_id,
+                  d.dept_name store_name,
+                  concat(s.province_name,'-',s.city_name) area_name,
+                  i.staff_name store_manager_name,
+                  d.dept_status store_status,
+                  s.store_num,
+                  s.share_cost_flag,
+                  s.open_date
+        from      sf_store_info s
+        left join sf_dept_group d on s.id = d.id
+        left join sf_staff_dept_relation u on u.dept_id = d.id and u.staff_job = '01' and u.staff_status = 1
+        left join sf_staff_user_info i on u.staff_id = i.id
+        <where>
+            <!-- 门店名称-->
+            <if test="store_name !=null and store_name != ''">
+                d.dept_name like CONCAT('%', #{store_name}, '%')
+            </if>
+            <!--店长姓名-->
+            <if test="store_manager_name !=null and store_manager_name!= ''">
+                and i.staff_name like CONCAT('%', #{store_manager_name}, '%')
+            </if>
+            <!--所在省代码-->
+            <if test="province_code !=null and province_code != ''">
+                and s.province_code = #{province_code}
+            </if>
+            <!--所在市代码-->
+            <if test="city_code !=null and city_code != ''">
+                and s.city_code = #{city_code}
+            </if>
+            <!--所在区代码-->
+            <if test="area_code !=null and area_code != ''">
+                and s.area_code = #{area_code}
+            </if>
+            <if test="store_num !=null and store_num != ''">
+                and s.store_num like CONCAT('%', #{store_num}, '%')
+            </if>
+            <!-- 是否分摊成本-->
+            <if test="share_cost_flag !=null">
+                and s.share_cost_flag = #{share_cost_flag}
+            </if>
+
+            <!--开业开始时间-->
+            <if test="open_date_start !=null and open_date_start != ''">
+                and s.open_date &gt;= #{open_date_start}
+            </if>
+            <!--开业结束时间-->
+            <if test="open_date_end !=null and open_date_end != ''">
+                and s.open_date &lt;= #{open_date_end}
+            </if>
+
+        </where>
+        order by s.create_time desc
+    </select>
+
+    <!-- 根据门店id查询详情查询映射结果 -->
+    <resultMap id="getStoreIdByDetesultMap" type="com.hryj.entity.vo.staff.store.response.StoreInfoResponseVO">
+        <id column="store_id" property="store_id"/>
+        <result column="province_code" property="province_code"/>
+        <result column="province_name" property="province_name"/>
+        <result column="city_code" property="city_code"/>
+        <result column="city_name" property="city_name"/>
+        <result column="area_code" property="area_code"/>
+        <result column="area_name" property="area_name"/>
+        <result column="street_code" property="street_code"/>
+        <result column="street_name" property="street_name"/>
+        <result column="detail_address" property="detail_address"/>
+        <result column="locations" property="locations"/>
+        <result column="telephone" property="telephone"/>
+        <result column="business_time_start" property="business_time_start"/>
+        <result column="business_time_end" property="business_time_end"/>
+        <result column="store_name" property="store_name"/>
+        <result column="dept_pid" property="dept_id"/>
+        <result column="contact_name" property="contact_name"/>
+        <result column="store_num" property="store_num"/>
+        <result column="service_rule" property="service_rule"/>
+        <result column="open_date" property="open_date"/>
+        <result column="share_cost_flag" property="share_cost_flag"/>
+
+
+        <!--员工组织关系-->
+        <collection property="storeStaffRelationVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.user.response.StaffDeptRelationResponseVO">
+            <id column="staff_id" property="staff_id"/>
+            <result column="staff_name" property="staff_name"/>
+            <result column="referral_code" property="referral_code"/>
+            <result column="staff_job" property="staff_job"/>
+            <result column="help_order_ratio" property="help_order_ratio"/>
+            <result column="distribution_amt" property="distribution_amt"/>
+            <result column="salary_amt" property="salary_amt"/>
+            <result column="staff_job" property="staff_job"/>
+            <result column="staff_type" property="staff_type"/>
+            <result column="service_ratio" property="service_ratio"/>
+            <result column="share_cost_ratio" property="share_cost_ratio"/>
+
+        </collection>
+
+        <!--部门组织成本关系-->
+        <collection property="deptCostVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.dept.response.DeptCostResponseVO">
+            <id column="dept_cost_id" property="dept_cost_id"/>
+            <result column="cost_name" property="cost_name"/>
+            <result column="cost_amt" property="cost_amt"/>
+            <result column="create_time" property="create_time"/>
+            <result column="html_dept_cost_id" property="html_dept_cost_id"/>
+
+        </collection>
+
+        <!--门店配送区关系-->
+        <collection property="storeDistributionAreaVOList" javaType="List"
+                    ofType="com.hryj.entity.vo.staff.store.response.StoreDistributionAreaResponseVO">
+            <result column="poi_id" property="id"/>
+            <result column="location_type" property="type"/>
+            <result column="location_name" property="name"/>
+            <result column="address" property="address"/>
+            <result column="area_locations" property="locations"/>
+            <result column="distance" property="distance"/>
+        </collection>
+    </resultMap>
+
+    <!--根据门店id查询详情查-->
+    <select id="getStoreIdByDet" parameterType="com.hryj.entity.vo.staff.store.request.StoreIdRequestVO"
+            resultMap="getStoreIdByDetesultMap">
+        SELECT    store.id store_id,
+                  store.province_code,
+                  store.province_name,
+                  store.city_code,
+                  store.city_name,
+                  store.area_code,
+                  store.area_name,
+                  store.street_code,
+                  store.street_name,
+                  store.detail_address,
+                  store.locations,
+                  store.telephone,
+                  store.business_time_start,
+                  store.business_time_end,
+                  store.contact_name,
+                  store.store_num,
+                  store.open_date,
+                  store.service_rule,
+                  store.share_cost_flag,
+
+                  dept.dept_name store_name,
+                  dept.dept_pid,
+
+                  staff.id staff_id,
+                  staff.staff_name,
+                  staff.referral_code,
+                  staff.staff_type,
+                  relation.staff_job,
+                  relation.help_order_ratio,
+                  relation.distribution_amt,
+                  relation.salary_amt,
+                  relation.service_ratio,
+                  relation.share_cost_ratio,
+
+                  const.id dept_cost_id,
+                  const.cost_name,
+                  const.create_time,
+                  const.cost_amt,
+                  const.id html_dept_cost_id,
+
+                  area.poi_id,
+                  area.location_type,
+                  area.location_name,
+                  area.address,
+                  area.locations area_locations,
+                  area.distance
+        FROM      sf_store_info store
+        LEFT JOIN sf_dept_group dept on store.id= dept.id
+        LEFT JOIN sf_dept_cost const on store.id=const.dept_id and const.data_status = 1
+        LEFT JOIN sf_staff_dept_relation relation on relation.dept_id = dept.id and relation.staff_status = 1
+        LEFT JOIN sf_staff_user_info staff on  staff.id=relation.staff_id
+        LEFT JOIN sf_store_distribution_area area on area.dept_id=dept.id
+        where     store.id = #{store_id}
+    </select>
+
+    <!--根据门店id查询覆盖的仓库-->
+    <select id="getWhListByStoreId" parameterType="com.hryj.entity.vo.staff.store.request.StoreIdRequestVO"
+            resultType="com.hryj.entity.vo.staff.store.response.StoreWhDistributionAreaResponseVO">
+        SELECT
+        wh.dept_id AS id,
+        wh.city_name,
+        wh.city_id
+        FROM sf_wh_distribution_area wh
+        LEFT JOIN  sf_store_info store on wh.city_id = store.city_code
+        WHERE  store.id= #{store_id}
+    </select>
+
+    <!--获取门店员工列表-->
+    <select id="getStoreStaffList" parameterType="com.hryj.entity.vo.staff.store.request.StoreStaffRequestVO"
+            resultType="com.hryj.entity.vo.staff.store.response.StoreStaffResponseVO">
+
+        SELECT
+        sdr.dept_id store_id,
+        staff.id staff_id,
+        staff.staff_name,
+        sdr.staff_job
+        FROM sf_staff_dept_relation sdr
+        left join sf_staff_user_info staff on sdr.staff_id = staff.id
+        WHERE sdr.dept_id in
+        <foreach item="id" collection="store_ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        <!-- 员工姓名-->
+        <if test="staff_name !=null and staff_name != ''">
+            and staff.staff like CONCAT('%', #{staff_name}, '%')
+        </if>
+        <!--员工岗位-->
+        <if test="staff_job !=null and staff_job !=''">
+            and sdr.staff_job =#{staff_job}
+        </if>
+        <!-- 员工id-->
+        <if test="staff_id !=null and staff_id !=0">
+            and sdr.staff_id =#{staff_id}
+        </if>
+    </select>
+
+    <!--app 根据门店id 获取门店详情-->
+    <select id="getAppStoreIdByDet" parameterType="com.hryj.entity.vo.staff.dept.request.DeptIdRequestVO"
+            resultType="com.hryj.entity.vo.staff.dept.response.DeptIdByStoreOrWarehouseResponseVO">
+          select  store.id dept_id,
+                  store.detail_address,
+                  store.telephone,
+                  store.contact_name,
+                  store.business_time_start,
+                  store.business_time_end,
+                  store.province_code,
+                  store.province_name,
+                  store.city_code,
+                  store.city_name,
+                  store.area_code,
+                  store.area_name,
+                  store.street_code,
+                  dept.dept_name,
+                  dept.dept_status,
+                  dept.dept_type
+        from      sf_store_info store
+        left join sf_dept_group dept on store.id= dept.id
+        where store.id = #{dept_id}
+
+    </select>
+    <!--根据仓库配送区域查询匹配的门店-->
+    <select id="whDistributionAreamatchingStore" resultType="int">
+        select
+        count(store.id) total
+        from
+        sf_store_info store
+        LEFT JOIN sf_dept_group dept on store.id= dept.id
+        WHERE dept.dept_status = 1 and store.city_code in
+        <foreach item="id" collection="city_ids" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+
+
+    </select>
+    <!--根据仓库id查询匹配的门店-->
+    <select id="stopWhDistributionAreaStore" resultType="int">
+         select
+         count(store.id) total
+        from
+        sf_store_info store
+        LEFT JOIN sf_dept_group dept on store.id= dept.id
+        WHERE dept.dept_status = 1 and store.city_code in (SELECT a.city_id from sf_wh_distribution_area a where a.dept_id = #{warehouse_id})
+    </select>
+</mapper>
+
+

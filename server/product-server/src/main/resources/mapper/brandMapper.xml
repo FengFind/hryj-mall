@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.BrandMapper">
+
+    <select id="getBrandList" resultType="com.hryj.entity.vo.product.common.response.ProductBrandResponseVO">
+        SELECT
+            b.id as brand_id,
+            b.brand_name,
+            b.brand_name_assist,
+            b.logo_image
+        FROM
+            p_brand b
+    </select>
+</mapper>

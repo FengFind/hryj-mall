@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ProductMapper">
+
+    <select id="selectPartyTopSalesProduct" resultType="com.hryj.entity.vo.product.response.ProductTopSalesItemResponseVO">
+        SELECT t1.product_id,
+            t1.party_id,
+            t1.sale_price,
+            t1.inventory_quantity,
+            t2.total_quantity_ordered - t2.total_quantity_canceled - t2.total_quantity_retured as total_sales,
+            t3.product_name,
+            t3.brand_name,
+            t3.specification,
+            t3.list_image_url
+            from p_party_product t1
+            LEFT JOIN p_product_summary t2 on t1.party_id = t2.party_id and t1.product_id = t2.product_id
+            LEFT JOIN p_product_info t3 on t1.product_id = t3.id
+            LEFT JOIN p_product_category t4 on t4.id = t3.prod_cate_id
+            <where>
+                <if test="up_down_status != null">
+                    t1.up_down_status = #{up_down_status}
+                </if>
+                <if test="party_id != null">
+                    and t1.party_id = #{party_id}
+                </if>
+                <if test="party_id_set != null">
+                    and t1.party_id in
+                    <foreach collection="party_id_set" index="i" item="item" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="category_id != null">
+                    and t3.prod_cate_id = #{category_id}
+                </if>
+            </where>
+            ORDER BY t2.total_quantity_ordered DESC, t4.sort_num desc, t1.update_time DESC, t1.create_time DESC
+            LIMIT 0, 10
+    </select>
+
+    <select id="selectTopSalesProduct" resultType="com.hryj.entity.vo.product.response.ProductTopSalesItemResponseVO">
+        SELECT
+            t1.id as product_id,
+            t1.product_name,
+            t1.brand_name,
+            t1.specification,
+            t1.list_image_url,
+            t3.total_sales
+            from p_product_info t1
+            left JOIN (
+                select t2.product_id, SUM(t2.total_quantity_ordered) - SUM(t2.total_quantity_canceled) - SUM(t2.total_quantity_retured) as total_sales from p_product_summary t2 GROUP BY t2.product_id
+            ) t3 on t1.id = t3.product_id
+          LEFT JOIN p_product_category t4 on t4.id = t1.prod_cate_id
+            <where>
+                <if test="up_down_status != null">
+                    t1.up_down_status = #{up_down_status}
+                </if>
+                <if test="category_id != null">
+                    and t1.prod_cate_id = #{category_id}
+                </if>
+            </where>
+            ORDER BY t3.total_sales DESC, t4.sort_num desc, t1.update_time DESC, t1.create_time DESC
+            LIMIT 0, 10
+    </select>
+
+    <select id="pageFindProduct" parameterType="map" resultType="com.hryj.entity.bo.product.ProductInfo">
+        SELECT
+            t1.id,
+            t1.product_name,
+            t1.product_type_id,
+            t1.brand,
+            t1.prod_cate_path,
+            t1.list_image_url,
+            t1.up_down_status,
+            t1.audit_status
+        FROM
+            p_product_info t1
+        LEFT JOIN p_brand t2 ON t1.brand = t2.id
+        LEFT JOIN p_product_geo t3 ON t1.made_where = t3.id
+        <where>
+            <if test="product_type_id != null">
+                t1.product_type_id = #{product_type_id}
+            </if>
+            <if test="product_type_id_list != null">
+                and t1.product_type_id in
+                <foreach collection="product_type_id_list" item="item" index="i" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="audit_status != null">
+                and t1.audit_status = #{audit_status}
+            </if>
+            <if test="up_down_status != null">
+                and t1.up_down_status = #{up_down_status}
+            </if>
+            <if test="product_name != null">
+                and t1.product_name like CONCAT('%', #{product_name}, '%')
+            </if>
+            <if test="prod_cate_id != null">
+                and t1.prod_cate_id = #{prod_cate_id}
+            </if>
+            <if test="prod_cate_id_list != null">
+                and t1.prod_cate_id in
+                <foreach collection="prod_cate_id_list" item="item" index="i" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="prod_cate_path != null">
+                and t1.prod_cate_path like #{prod_cate_path}
+            </if>
+            <if test="brand_id != null">
+                and t1.brand = #{brand_id}
+            </if>
+            <if test="brand_name != null">
+                and (t2.brand_name like CONCAT('%', #{brand_name}, '%') or t2.brand_name_assist like CONCAT('%', #{brand_name}, '%'))
+            </if>
+            <if test="made_where_id != null">
+                and t1.made_where = #{made_where_id}
+            </if>
+            <if test="made_where_name != null">
+                and (t3.name like CONCAT('%', #{made_where_name}, '%') or t3.code like CONCAT('%', #{made_where_name}, '%'))
+            </if>
+            ORDER BY t1.create_time DESC
+        </where>
+    </select>
+
+    <select id="selectProductMappingList"
+            resultType="com.hryj.entity.vo.product.common.mapping.ProductMappingItem">
+        <if test="prod_id_set != null">
+            SELECT
+                t1.id as product_id,
+                t1.product_type_id,
+                t1.prod_cate_id,
+                t1.prod_cate_path,
+                t1.product_name,
+                t1.brand,
+                t1.forbid_sale_flag,
+                t1.specification,
+                t1.list_image_url,
+                t1.cost_price,
+                t2.hs_code,
+                t2.unit_1,
+                t2.unit_2,
+                t2.third_sku_id,
+                t2.inventory_quantity,
+                t2.channel,
+                t3.id AS tax_rate_id,
+                t3.consume_tax,
+                t3.increment_tax
+            FROM
+                p_product_info t1
+            LEFT JOIN p_cross_border t2 ON t1.id = t2.id
+            LEFT JOIN p_tax_rate t3 ON t2.hs_code = t3.hs_code
+            WHERE
+                t1.id IN
+                <foreach collection="prod_id_set" item="item" index="i" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+        </if>
+    </select>
+
+    <update id="updateProdCateName" parameterType="Map">
+        <if test="prod_cate_id != null and category_name != null">
+            UPDATE p_product_info t1 set t1.prod_cate_path = #{category_name} where t1.prod_cate_id = #{prod_cate_id}
+        </if>
+    </update>
+</mapper>

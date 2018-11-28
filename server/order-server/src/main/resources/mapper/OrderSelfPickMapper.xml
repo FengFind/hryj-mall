@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderSelfPickMapper">
+
+
+    <!--根据订单ID查询用户信息和门店信息-->
+    <select id="findAllUserMessage" parameterType="java.util.List"
+            resultType="com.hryj.entity.vo.order.OrderSelfPickUserVO">
+        select
+        ssi.detail_address self_pick_address,
+        ssi.contact_name self_pick_contact,
+        ssi.telephone self_pick_phone,
+        ooi.user_id,
+        ooi.user_name,
+        ooi.user_phone,
+        ooi.user_address,
+        ooi.id order_id
+        from o_order_info ooi,sf_store_info ssi where ooi.party_id = ssi.id
+        where ooi.id in
+        <foreach collection="orderIdList" item="id" index="index" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

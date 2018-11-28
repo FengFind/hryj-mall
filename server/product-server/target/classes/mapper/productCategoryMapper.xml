@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ProductCategoryMapper">
+
+    <select id="selectMaxNumByCondition" resultType="java.lang.Integer">
+        SELECT MAX(t1.sort_num) as sort_num
+        from p_product_category t1
+        <where>
+            <if test="parent_cate_id == null">
+                t1.category_pid is null
+            </if>
+            <if test="parent_cate_id != null">
+                and t1.category_pid = #{parent_cate_id}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ActivityProductItemMapper">
+
+    <select id="getSortNumMaxByActivityId" resultType="long">
+        select max(sort_num) from pt_activity_product_item where activity_id = #{activity_id};
+    </select>
+
+    <select id="getActivityProductItemBySortNumAndActivityId" resultType="com.hryj.entity.bo.promotion.ActivityProductItem">
+        select * from pt_activity_product_item where activity_id = #{activity_id} and sort_num = #{sort_num};
+    </select>
+</mapper>

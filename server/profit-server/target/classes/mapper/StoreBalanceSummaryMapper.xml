@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.StoreBalanceSummaryMapper">
+
+    <!-- 分页查询门店分润列表 -->
+    <select id="searchStoreProfitList" resultType="com.hryj.entity.vo.profit.response.StoreBalanceVO">
+        SELECT
+            psbs.id AS summary_id,
+            psbs.balance_month,
+            psbs.store_id,
+            psbs.store_name,
+            psbs.region_salary_cost,
+            psbs.region_non_fixed_cost,
+            psbs.store_fixed_cost,
+            psbs.store_non_fixed_cost,
+            psbs.store_salary_cost,
+            psbs.store_distribution_cost,
+            psbs.setup_status,
+            prbb.setup_status AS region_setup_status
+        FROM
+            pr_store_balance_summary psbs,pr_region_balance_summary prbb
+        <where>
+            AND psbs.region_id = prbb.dept_id
+            AND psbs.balance_month = prbb.balance_month
+            <if test="query_month !=null and query_month !=''">
+                AND psbs.balance_month = #{query_month}
+            </if>
+            <if test="store_name !=null and store_name !=''">
+                AND psbs.store_name LIKE CONCAT('%',#{store_name},'%')
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND psbs.dept_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="setup_status !=null">
+                AND psbs.setup_status = #{setup_status}
+            </if>
+        </where>
+        ORDER BY psbs.balance_month DESC,summary_id DESC
+    </select>
+
+    <!-- 查询未设置非固定成本的门店列表 -->
+    <select id="findNoSetNonFixedCostStoreList" resultType="com.hryj.entity.bo.profit.StoreBalanceSummary">
+        SELECT
+            *
+        FROM
+            pr_store_balance_summary psbs
+        WHERE
+            psbs.setup_status = 0
+        AND psbs.region_id = #{region_id}
+        AND psbs.balance_month = #{balance_month}
+    </select>
+
+    <!-- 更新推荐用户的统计数据 -->
+    <update id="updateReferralStatisData">
+        UPDATE pr_store_order_statis
+        SET referral_register_num = referral_register_num + 1
+        WHERE
+            statis_date = #{statis_date}
+        AND store_id = #{store_id}
+    </update>
+</mapper>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.ActivityAuditMapper">
+    <!-- 分页查询活动审核列表 -->
+    <select id="searchActivityAuditRecordList" resultType="com.hryj.entity.vo.promotion.activity.response.PromotionActivityAuditRecordResponseVO">
+        SELECT
+        paarp.id audit_record_id,
+        pai.id activity_id,
+        pai.activity_name,
+        pai.start_date,
+        pai.end_date,
+        pai.activity_type,
+        paarp.submit_staff_name,
+        paarp.submit_time,
+        paarp.handle_staff_name,
+        paarp.handle_result,
+        paarp.handle_time,
+        paarp.audit_remark
+        FROM
+        pt_activity_audit_record paarp
+        LEFT JOIN pt_activity_info pai ON paarp.activity_id = pai.id
+        <where>
+            pai.audit_status in (1,2)
+            <if test="activity_name !=null and activity_name !=''">
+                and pai.activity_name LIKE CONCAT('%',#{activity_name},'%')
+            </if>
+            <if test="audit_status != null and audit_status != ''">
+                and paarp.handle_result = #{audit_status}
+            </if>
+            <if test="activity_type !=null and activity_type !=''">
+                and pai.activity_type = #{activity_type}
+            </if>
+            <if test="activity_status !=null">
+                and pai.activity_status = #{activity_status}
+            </if>
+            <if test="start_date_begin !=null and start_date_begin !=''">
+                and DATE_FORMAT(pai.start_date, '%Y-%m-%d %H:%i:%S') >= #{start_date_begin}
+            </if>
+            <if test="start_date_end !=null and start_date_end !=''">
+                and DATE_FORMAT(pai.start_date, '%Y-%m-%d %H:%i:%S') &lt;= #{start_date_end}
+            </if>
+            <if test="end_date_begin !=null and end_date_begin !=''">
+                and DATE_FORMAT(pai.end_date, '%Y-%m-%d %H:%i:%S') >= #{end_date_begin}
+            </if>
+            <if test="end_date_end !=null and end_date_end !=''">
+                and DATE_FORMAT(pai.end_date, '%Y-%m-%d %H:%i:%S') &lt;= #{end_date_end}
+            </if>
+            <if test="operator_name !=null and operator_name !=''">
+                and pai.operator_name LIKE CONCAT('%',#{operator_name},'%')
+            </if>
+            <if test="create_time_begin !=null and create_time_begin !=''">
+                and DATE_FORMAT(pai.create_time, '%Y-%m-%d %H:%i:%S') >= #{create_time_begin}
+            </if>
+            <if test="create_time_end !=null and create_time_end !=''">
+                and DATE_FORMAT(pai.create_time, '%Y-%m-%d %H:%i:%S') &lt;= #{create_time_end}
+            </if>
+            <if test="audit_time_begin != null and audit_time_begin != ''">
+                and DATE_FORMAT(paarp.handle_time, '%Y-%m-%d %H:%i:%S') >= #{audit_time_begin}
+            </if>
+            <if test="audit_time_end != null and audit_time_end != ''">
+                and DATE_FORMAT(paarp.handle_time, '%Y-%m-%d %H:%i:%S') &lt;= #{audit_time_end}
+            </if>
+            <if test="s_w_id_list != null and s_w_id_list.size > 0">
+                and pai.id in(
+                SELECT scope.activity_id
+                from pt_activity_scope_item scope
+                where scope.party_id in
+                <foreach collection="s_w_id_list" index="i" item="partyid" open="(" separator="," close=")">
+                    #{partyid}
+                </foreach>
+                group by scope.activity_id
+                )
+            </if>
+        </where>
+        ORDER BY handle_time DESC
+    </select>
+
+</mapper>

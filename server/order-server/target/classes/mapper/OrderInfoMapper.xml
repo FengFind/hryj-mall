@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderInfoMapper">
+
+    <!--立即购买查询数据-->
+    <select id="orderCreateNow" parameterType="com.hryj.entity.vo.order.OrderSaveItemVO"
+            resultType="com.hryj.entity.vo.order.OrderCreateFromCartVO">
+        SELECT
+        ppp.party_id,
+        ppp.product_id,
+        ppp.sale_price org_price,
+        ppi.prod_cate_id product_category_id,
+        ppi.product_name,
+        ppi.list_image_url,
+        ppi.cost_price,
+        sdg.dept_name
+        FROM
+        p_party_product ppp
+        LEFT JOIN p_product_info ppi ON ppp.product_id = ppi.id
+        LEFT JOIN sf_dept_group sdg ON sdg.id = ppp.party_id
+        WHERE ppp.party_id = #{party_id} AND  ppp.product_id = #{product_id}
+    </select>
+    <!--根据订单编号获取订单基本信息-->
+    <select id="getOrderInfoVO" resultType="com.hryj.entity.vo.order.OrderInfoVO" parameterType="java.lang.Long">
+       SELECT
+            info.id AS order_id,
+            info.order_num,
+            info.order_type,
+            info.party_id,
+            info.party_name,
+            info.party_type,
+            info.order_status,
+            info.order_amt,
+            info.discount_amt,
+            info.pay_amt,
+            info.create_time,
+            info.pay_time,
+            info.pay_method,
+            info.delivery_type,
+            info.user_id,
+            info.user_name,
+            info.user_phone,
+            info.receive_phone,
+            info.user_address,
+            info.help_staff_id,
+            info.create_time,
+            info.update_time,
+            info.delivery_warehouse_name,
+            ocbo.third_order_code,
+            ocbo.third_order_status_desc,
+            ocbo.third_order_status,
+            ocbo.failed_reason,
+            ocbo.cancel_count,
+            ocbo.cancel_failed_reason,
+            ocbo.third_order_status,
+            oot.description order_type_name,
+            IFNULL(
+                (
+                    SELECT
+                        SUM(amount)
+                    FROM
+                        o_order_adjustment
+                    WHERE
+                        order_id = info.id
+                    AND adjustment_type_id = 'cross_border_prod_tax'
+                ),
+                0
+            ) AS order_tax
+        FROM
+            o_order_info info
+        LEFT JOIN o_cross_border_order ocbo ON info.id = ocbo.order_id
+        LEFT JOIN o_order_type oot ON info.order_type = oot.order_type_id
+        WHERE
+	info.id = #{order_id}
+
+    </select>
+
+    <!--获取商品信息-->
+    <select id="getProductInfo" resultType="com.hryj.entity.vo.order.ImmediateBuyProductInfoVO"
+            parameterType="com.hryj.entity.vo.cart.request.ShoppingCartRequestVO">
+
+        SELECT
+            party.product_id,
+            product.product_name,
+            product.list_image_url,
+            party.sale_price,
+            act.activity_id,
+            activity.activity_name,
+            activity.activity_type,
+            activity.activity_mark_image,
+            <if test="activity_id != null">
+                (party.sale_price-act.activity_price) AS discount_amt,
+            </if>
+            act.activity_price
+        FROM
+            p_party_product party
+        LEFT JOIN p_product_info product ON party.product_id=product.id
+        LEFT JOIN pt_activity_product_item act ON  party.product_id=act.product_id AND act.activity_id=#{activity_id}
+        LEFT JOIN pt_activity_info activity ON activity.id=act.activity_id
+        where party.product_id=#{product_id} and party.party_id=#{party_id}
+    </select>
+    <!--根据订单编号查询订单状态变更历史-->
+    <select id="selectOrderStatusList" resultType="com.hryj.entity.bo.order.OrderStatusRecord" parameterType="java.lang.Long">
+        select * from o_order_status_record where order_id=#{order_id} order by record_time desc
+
+    </select>
+
+
+
+    <!--根据订单编号获取订单列表-->
+    <select id="findOrderInfoList" parameterType="java.util.List" resultType="com.hryj.entity.bo.order.OrderInfo">
+      select * from o_order_info
+      where
+      order_num in
+        <foreach collection="list" item="num" index="index" open="(" close=")" separator=",">
+            #{num}
+        </foreach>
+    </select>
+
+    <!--根据编号获取门店信息-->
+    <select id="getStoreInfo" resultType="com.hryj.entity.bo.staff.store.StoreInfo" parameterType="java.lang.Long">
+
+      select  * from sf_store_info where id =#{party_id}
+
+    </select>
+
+
+
+    <!--根据num查询订单信息-->
+    <select id="getOrderInfoByNum" resultType="com.hryj.entity.bo.order.OrderInfo" parameterType="java.lang.String">
+      select  * from o_order_info where order_num =#{orderNum}
+    </select>
+
+
+    <!--根据条件查询订单列表信息-->
+    <select id="getOrderInfoVOListByPage" parameterType="com.hryj.entity.vo.order.request.AdminOrderListRequestVO"
+            resultType="com.hryj.entity.vo.order.AdminOrderInfoVO">
+        SELECT
+        ooi.order_num,
+        ooi.order_type,
+        ooi.user_name,
+        ooi.user_phone,
+        ooi.pay_method,
+        ooi.help_staff_id,
+        ooi.delivery_type,
+        ooi.order_status,
+        ooi.create_time,
+        ooi.party_type,
+        ooi.party_id,
+        ooi.id order_id,
+        oot.description
+        FROM o_order_info ooi
+        LEFT JOIN o_order_type oot on ooi.order_type = oot.order_type_id
+        <if test="staff_id!=null and staff_id !=''">
+            LEFT JOIN o_order_type_role ootr on ooi.order_type = ootr.order_type_id
+        </if>
+        <where>
+                <if test="staff_id!=null and staff_id !=''">
+                    AND ootr.staff_id = #{staff_id}
+                </if>
+
+                <if test="order_num!=null and order_num !=''">
+                    AND ooi.order_num = #{order_num}
+                </if>
+                <if test="permission_type_id!=null and permission_type_id !=''">
+                    AND ooi.order_type = #{permission_type_id}
+                </if>
+
+                <if test="user_phone!=null and user_phone !=''">
+                    AND ooi.user_phone = #{user_phone}
+                </if>
+                <if test="user_name!=null and user_name !=''">
+                    AND ooi.user_name = #{user_name}
+                </if>
+                <if test="pay_method!=null and pay_method !=''">
+                    AND ooi.pay_method = #{pay_method}
+                </if>
+                <if test="order_status_list!=null and order_status_list !=''">
+                    AND ooi.order_status in (${order_status_list})
+                </if>
+                <if test="start_date!=null and end_date!=null and start_date!='' and end_date!=''">
+                    AND ooi.create_time &gt;= #{start_date}
+                    AND ooi.create_time &lt;= #{end_date}
+                </if>
+                <if test="party_path!=null and party_path != ''">
+                    AND ooi.party_path LIKE #{party_path}"%"
+                </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!--根据orderId跟新退货单状态-->
+    <update id="updateOrderInfoStatus" parameterType="com.hryj.entity.vo.order.OrderStatusVO">
+        update o_order_info set order_status=#{order_status}
+        <if test="complete_time !=null ">
+         ,complete_time = #{complete_time}
+        </if>
+        ,new_trade_flag = #{new_trade_flag}
+         where id=#{order_id}
+    </update>
+
+
+    <!--根据订单ID 查询订单信息和订单商品信息-->
+    <select id="selectOrderInfoAndOrderProductMessage" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.DistributionProductVO">
+        select oop.product_name,
+        oop.list_image_url,
+        oop.actual_price,
+        oop.quantity,
+        oop.id product_id
+        from o_order_info ooi,o_order_product oop
+        where oop.order_id = ooi.id
+        and ooi.id = #{order_id}
+    </select>
+
+    <!-- 统计交易用户数量 -->
+    <select id="statisTradeUserNum" resultType="java.util.Map">
+        SELECT
+            COUNT(DISTINCT ooi.user_id) AS trade_user_num
+        FROM
+            o_order_info ooi
+        <where>
+            AND ooi.order_status = '08'
+            <if test="party_id !=null">
+                AND ooi.party_id = #{party_id}
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND ooi.party_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (DATE_FORMAT(ooi.complete_time, '%Y-%m-%d') BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询交易用户列表 -->
+    <select id="findTradeUserList" resultType="com.hryj.entity.vo.order.UserTradeVO">
+        SELECT
+            ooi.user_id,
+            ooi.user_name,
+            ooi.user_phone,
+            IFNULL(SUM(ooi.pay_amt), 0) AS trade_amt
+        FROM
+            o_order_info ooi
+        <where>
+            AND ooi.order_status = '08'
+            <if test="store_id !=null">
+                AND ooi.party_id = #{store_id}
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND ooi.party_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (DATE_FORMAT(ooi.complete_time, '%Y-%m-%d') BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+        GROUP BY ooi.user_id
+    </select>
+
+    <!-- 查询新增交易用户列表 -->
+    <select id="findNewTradeUserList" resultType="com.hryj.entity.vo.order.UserTradeVO">
+        SELECT
+            ooi.user_id,
+            ooi.user_name,
+            ooi.user_phone,
+            IFNULL(SUM(ooi.pay_amt), 0) AS trade_amt
+        FROM
+            o_order_info ooi
+        <where>
+            AND ooi.order_status = '08'
+            AND ooi.new_trade_flag =1
+            <if test="store_id !=null">
+                AND ooi.party_id = #{store_id}
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND ooi.party_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (DATE_FORMAT(ooi.complete_time, '%Y-%m-%d') BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+        GROUP BY ooi.user_id
+    </select>
+
+
+    <!--根据门店ID，商品ID，活动ID 查询对应商品活动信息-->
+    <select id="getActivityMessage" resultType="com.hryj.entity.vo.order.OrderActivityInfoVO">
+      SELECT
+        pasi.activity_id,
+        pasi.party_id,
+        pasi.end_date,
+        papi.activity_price,
+        papi.product_id
+        FROM
+            pt_activity_scope_item pasi,
+            pt_activity_product_item papi
+        WHERE
+            pasi.activity_id = papi.activity_id
+        AND pasi.activity_id = #{activity_id}
+        AND pasi.party_id = #{party_id}
+        AND papi.product_id = #{product_id}
+    </select>
+
+    <!-- 根据用户id查询是否新交易订单查询,返回为数值，大于0标识非新交易-->
+    <select id="countNewTradeFlag" resultType="java.lang.Integer" parameterType="java.lang.Long">
+      SELECT count(user_id) FROM o_order_info WHERE user_id = #{userId} and new_trade_flag = 1
+    </select>
+
+    <!--查询待同步订单列表-->
+    <select id="findAwaitSyncOrderList" resultType="com.hryj.entity.vo.order.crossOrder.CrossBorderOrderVo">
+        SELECT
+            odinfo.id AS order_id,
+            odinfo.order_num,
+            odinfo.order_type,
+            odinfo.order_status,
+            odinfo.pay_method,
+            odinfo.help_staff_id,
+            odinfo.pay_amt,
+            odinfo.pay_time,
+            odinfo.user_id,
+            odinfo.user_name,
+            odinfo.user_phone,
+            odinfo.user_address,
+            odinfo.province_id,
+            odinfo.city_id,
+            odinfo.area_id,
+            odinfo.area_info,
+            odinfo.order_remark,
+            odcross.third_order_code,
+            odcross.third_order_status,
+            odcross.third_order_status_desc,
+            odcross.subscriber_id_card,
+            odcross.subscriber_name,
+            odpaygroup.app_key,
+            odpaygroup.payment_channel,
+            odpaygroup.id as pay_group_id,
+            odpaygroup.pay_group_sn,
+            odpay.id as group_item_id,
+            odpay.sub_pay_trade_num,
+            odpaygroup.pay_trade_num,
+            (select count(*) from py_payment_group_order where pay_group_id = odpaygroup.id) as pay_order_count,
+            (
+                SELECT
+                    SUM(odadj.amount)
+                FROM
+                    o_order_adjustment odadj
+                WHERE
+                    odadj.order_id = odinfo.id
+                AND odadj.adjustment_type_id = #{adjustment_type_id}
+            ) AS order_tax
+        FROM
+            o_order_info odinfo
+        INNER JOIN py_payment_group_order odpay ON odinfo.id = odpay.order_id
+        INNER JOIN py_payment_group odpaygroup ON odpay.pay_group_id = odpaygroup.id
+        INNER JOIN o_cross_border_order odcross ON odinfo.id = odcross.order_id
+        WHERE  odpaygroup.pay_status=#{pay_status}
+        AND odinfo.order_type=#{order_type}
+        AND odcross.third_order_status=#{third_order_status}
+     </select>
+
+</mapper>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderStatusRecordMapper">
+
+
+    <!--根据订单ID查询订单状态列表-->
+    <select id="getOrderStatusRecordVOList" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.bo.order.OrderStatusRecord">
+        select
+        record_time,order_status,status_remark,operator_id,operator_name,change_reason
+        from o_order_status_record
+        where order_id = #{order_id} ORDER BY record_time
+    </select>
+
+</mapper>

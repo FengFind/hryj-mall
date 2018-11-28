@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderForGCMapper">
+
+
+    <!--查询跨境订单-->
+    <select id="findCrossBorderOrder" resultType="com.hryj.entity.bo.order.OrderCrossBorder">
+       select * from o_cross_border_order where order_id=#{order_id} and third_order_code=#{third_order_code}
+    </select>
+
+
+    <!--需要定时查询的订单列表-->
+    <select id="findCrossBorderOrderList" resultType="com.hryj.entity.vo.order.OderForGCRequestVO">
+        SELECT
+            ocbo.order_id,
+            ooi.order_num,
+            ocbo.third_order_code
+        FROM
+            o_order_info ooi,
+            o_cross_border_order ocbo
+        WHERE
+            ooi.id = ocbo.order_id
+        AND ooi.order_status ='02'
+    </select>
+
+</mapper>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.UserInfoMapper">
+
+    <!-- 分页查询用户信息列表 -->
+    <select id="searchUserList" resultType="com.hryj.entity.vo.user.UserInfoVO">
+        SELECT
+            uui.id AS user_id,
+            uui.phone_num,
+            uua.receive_name AS user_name,
+            DATE_FORMAT(uui.create_time,'%Y-%m-%d %H:%i:%s') AS register_time,
+            uui.referral_code,
+            uui.staff_name,
+            uui.staff_phone,
+            uui.staff_job_name,
+            uui.store_name,
+            uua.id AS address_id,
+            CONCAT(uua.province_name,uua.city_name,uua.area_name,uua.location_address,uua.detail_address) AS receive_address,
+            uua.locations
+        FROM
+            u_user_info uui LEFT JOIN  u_user_address uua ON uui.id = uua.user_id
+        <where>
+            AND uua.default_flag =1
+            <if test="phone_num !=null and phone_num !=''">
+                AND uui.phone_num LIKE CONCAT('%',#{phone_num},'%')
+            </if>
+            <if test="user_name !=null and user_name !=''">
+                AND uua.receive_name LIKE CONCAT('%',#{user_name},'%')
+            </if>
+            <if test="start_date !=null and start_date !=''">
+                AND DATE_FORMAT(uui.create_time, '%Y-%m-%d %H:%i:%s') &gt;= #{start_date}
+            </if>
+            <if test="end_date !=null and end_date !=''">
+                AND DATE_FORMAT(uui.create_time, '%Y-%m-%d %H:%i:%s') &lt;= #{end_date}
+            </if>
+        </where>
+        ORDER BY register_time DESC
+    </select>
+
+    <!-- 查询用户基本信息 -->
+    <select id="findUserInfoVOByUserId" resultType="com.hryj.entity.vo.user.UserInfoVO">
+        SELECT
+            uui.id AS user_id,
+            uui.phone_num,
+            uua.receive_name AS user_name,
+            DATE_FORMAT(uui.create_time,'%Y-%m-%d %H:%i:%s') AS register_time,
+            uui.referral_code,
+            uui.staff_name,
+            uui.staff_phone,
+            uui.staff_job_name,
+            uui.store_name,
+            uua.id AS address_id,
+            CONCAT(uua.province_name,uua.city_name,uua.area_name,uua.location_address,uua.detail_address) AS receive_address,
+            uua.locations
+        FROM
+          u_user_info uui LEFT JOIN  u_user_address uua ON uui.id = uua.user_id
+        <where>
+            AND uua.default_flag =1
+            <if test="user_id !=null">
+                AND uui.id = #{user_id}
+            </if>
+            <if test="phone_num !=null and phone_num !=''">
+                AND uui.phone_num = #{phone_num}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询推荐注册用户列表 -->
+    <select id="findReferralRegisterUserList" resultType="com.hryj.entity.vo.user.UserInfoVO">
+        SELECT
+            uui.id AS user_id,
+            uui.phone_num,
+            uua.receive_name AS user_name,
+            DATE_FORMAT(uui.create_time,'%Y-%m-%d %H:%i:%s') AS register_time,
+            uui.referral_code,
+            uui.staff_name,
+            uui.staff_phone,
+            uui.staff_job_name,
+            uui.store_name,
+            uua.id AS address_id,
+            CONCAT(uua.province_name,uua.city_name,uua.area_name,uua.location_address,uua.detail_address) AS receive_address,
+            uua.locations
+        FROM
+            u_user_info uui LEFT JOIN  u_user_address uua ON uui.id = uua.user_id
+        <where>
+            AND uua.default_flag =1
+            <if test="staff_id !=null">
+                AND uui.staff_id = #{staff_id}
+            </if>
+            <if test="store_id !=null">
+                AND uui.store_id = #{store_id}
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND uui.dept_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+            <if test="start_date !=null and start_date !='' and end_date !=null and end_date !=''">
+                AND (DATE_FORMAT(uui.create_time, '%Y-%m-%d') BETWEEN #{start_date} AND #{end_date})
+            </if>
+        </where>
+        ORDER BY register_time DESC
+    </select>
+
+
+</mapper>

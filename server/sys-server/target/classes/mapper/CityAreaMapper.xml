@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.CityAreaMapper">
+
+    <!-- 根据级别查询城市区域列表 -->
+    <select id="findCityListByClevel" resultType="com.hryj.entity.vo.sys.response.CityAreaVO">
+        SELECT
+            id AS city_id,
+            city_name,
+            pid,
+            path_name,
+            letter,
+            CONCAT(sca.lng, ',', sca.lat) AS locations
+        FROM
+            sys_city_area sca
+        <where>
+            <if test="clevel !=null">
+                AND sca.clevel = #{clevel}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据父级id查询城市区域列表 -->
+    <select id="findCityListByPid" resultType="com.hryj.entity.vo.sys.response.CityAreaVO">
+        SELECT
+            id AS city_id,
+            city_name,
+            pid,
+            path_name,
+            letter,
+            CONCAT(sca.lng, ',', sca.lat) AS locations
+        FROM
+            sys_city_area sca
+        <where>
+            <if test="pid !=null">
+                AND sca.pid = #{pid}
+            </if>
+        </where>
+    </select>
+</mapper>

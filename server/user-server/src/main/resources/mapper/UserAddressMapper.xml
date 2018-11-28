@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.UserAddressMapper">
+
+    <select id="findUserAddressList" resultType="com.hryj.entity.vo.user.UserAddressVO">
+        SELECT
+            uua.id AS address_id,
+            uua.poi_id,
+            uua.location_type_code,
+            uua.location_type_name,
+            uua.location_name,
+            uua.location_address,
+            uua.locations,
+            uua.province_code,
+            uua.province_name,
+            uua.city_code,
+            uua.city_name,
+            uua.area_code,
+            uua.area_name,
+            uua.detail_address,
+            uua.receive_name,
+            uua.receive_phone,
+            uua.default_flag
+        FROM
+            u_user_address uua
+        WHERE
+            uua.user_id = #{user_id}
+    </select>
+</mapper>

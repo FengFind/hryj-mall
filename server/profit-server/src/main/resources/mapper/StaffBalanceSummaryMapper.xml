@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.StaffBalanceSummaryMapper">
+
+    <!-- 查询店员数据列表 -->
+    <select id="findStaffBalanceSummaryList" resultType="com.hryj.entity.vo.profit.response.StaffBalanceSummaryVO">
+        SELECT
+            psbs.id AS staff_balance_summary_id,
+            psbs.balance_month,
+            psbs.staff_name,
+            psbs.staff_job_name,
+            psbs.total_cost,
+            psbs.service_profit,
+            psbs.help_order_profit,
+            IFNULL(psbs.actual_profit,0) AS actual_profit
+        FROM
+            pr_staff_balance_summary psbs
+        <where>
+            <if test="store_id !=null">
+                AND psbs.store_id = #{store_id}
+            </if>
+            <if test="query_month !=null and query_month !=''">
+                AND psbs.balance_month = #{query_month}
+            </if>
+        </where>
+        ORDER BY psbs.balance_month DESC,staff_balance_summary_id DESC
+    </select>
+
+    <!-- 查询成本数据列表 -->
+    <select id="findStoreCostDetailList" resultType="com.hryj.entity.vo.profit.response.StoreCostDetailVO">
+        SELECT
+            bdc.id AS store_cost_detail_id,
+            bdc.cost_name,
+            bdc.cost_amt
+        FROM
+            backup_dept_cost bdc
+        <where>
+            AND bdc.data_status = 1
+            <if test="store_id !=null">
+                AND bdc.dept_id = #{store_id}
+            </if>
+            <if test="query_month !=null and query_month !=''">
+                AND bdc.backup_month = #{query_month}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询配送数据列表 -->
+    <select id="findStaffDistributionList" resultType="com.hryj.entity.vo.profit.response.StaffDistributionVO">
+        SELECT
+            psbs.id AS staff_distribution_id,
+            psbs.staff_name,
+            psbs.distribution_num,
+            psbs.distribution_profit
+        FROM
+            pr_staff_balance_summary psbs
+        <where>
+            <if test="store_id !=null">
+                AND psbs.store_id = #{store_id}
+            </if>
+            <if test="query_month !=null and query_month !=''">
+                AND psbs.balance_month = #{query_month}
+            </if>
+        </where>
+    </select>
+
+    <!-- 分页查询店长分润列表 -->
+    <select id="searchStoreManagerProfitList" resultType="com.hryj.entity.vo.profit.response.StoreManagerProfitVO">
+        SELECT
+            psbs.id AS store_manager_profit_id,
+            psbs.balance_month,
+            psbs.staff_name,
+            psbs.store_name,
+            psbs.total_cost,
+            psbs.service_profit,
+            psbs.help_order_profit,
+            psbs.distribution_profit,
+            IFNULL(psbs.actual_profit, 0) AS actual_profit,
+            prbb.setup_status AS balance_status
+        FROM
+            pr_staff_balance_summary psbs,pr_region_balance_summary prbb
+        <where>
+            AND psbs.region_id = prbb.dept_id
+            AND psbs.balance_month = prbb.balance_month
+            AND psbs.staff_job = '01'
+            <if test="balance_status !=null">
+                AND prbb.setup_status = #{balance_status}
+            </if>
+            <if test="query_month !=null and query_month !=''">
+                AND psbs.balance_month = #{query_month}
+            </if>
+            <if test="store_name !=null">
+                AND psbs.store_name LIKE CONCAT('%',#{store_name},'%')
+            </if>
+            <if test="staff_name !=null">
+                AND psbs.staff_name LIKE CONCAT('%',#{staff_name},'%')
+            </if>
+            <if test="dept_path !=null and dept_path !=''">
+                AND psbs.dept_path LIKE CONCAT(#{dept_path},'%')
+            </if>
+        </where>
+        ORDER BY psbs.balance_month DESC,store_manager_profit_id DESC
+    </select>
+
+    <!-- 查询分润数据明细 -->
+    <select id="findProfitDataDetail" resultType="com.hryj.entity.vo.profit.response.ProfitDataDetailVO">
+        SELECT
+            psbs.balance_month,
+            DATE_FORMAT(psbs.update_time,'%Y-%m-%d') AS balance_date,
+            psbs.actual_profit,
+            psbs.this_month_cost,
+            psbs.last_month_cost,
+            (psbs.service_profit + psbs.help_order_profit) AS gross_profit,
+            psbs.service_profit,
+            psbs.help_order_profit,
+            psbs.distribution_profit,
+            psbs.distribution_num
+        FROM
+            pr_staff_balance_summary psbs
+        <where>
+            <if test="query_month !=null and query_month !=''">
+                AND psbs.balance_month = #{query_month}
+            </if>
+            <if test="staff_id !=null">
+                AND psbs.staff_id =#{staff_id}
+            </if>
+        </where>
+        ORDER BY psbs.balance_month DESC
+    </select>
+
+    <!-- 分页查询分润数据明细 -->
+    <select id="searchProfitDataDetail" resultType="com.hryj.entity.vo.profit.response.ProfitDataDetailVO">
+        SELECT
+            psbs.id AS staff_balance_summary_id,
+            psbs.balance_month,
+            DATE_FORMAT(psbs.update_time,'%Y-%m-%d') AS balance_date,
+            psbs.actual_profit AS actual_profit,
+            psbs.this_month_cost AS this_month_cost,
+            psbs.last_month_cost AS last_month_cost,
+            (psbs.service_profit + psbs.help_order_profit) AS gross_profit,
+            psbs.service_profit AS service_profit,
+            psbs.help_order_profit AS help_order_profit,
+            psbs.distribution_profit AS distribution_profit,
+            psbs.distribution_num AS distribution_num
+        FROM
+            pr_staff_balance_summary psbs
+        <where>
+            <if test="staff_id !=null">
+                AND psbs.staff_id =#{staff_id}
+            </if>
+        </where>
+        ORDER BY psbs.balance_month DESC, staff_balance_summary_id DESC
+    </select>
+
+    <!-- 更新推荐用户的统计数据 -->
+    <update id="updateReferralStatisData">
+        UPDATE pr_staff_order_statis
+        SET referral_register_num = referral_register_num + 1
+        WHERE
+            statis_date = #{statis_date}
+        AND staff_id = #{staff_id}
+    </update>
+</mapper>

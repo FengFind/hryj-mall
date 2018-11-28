@@ -1,0 +1,16 @@
+com\hryj\controller\UserStoreController.class
+com\hryj\mapper\UserLoginRecordMapper.class
+com\hryj\mapper\UserLoginTokenMapper.class
+com\hryj\service\UserOftenPartyService.class
+com\hryj\controller\UserAdminController.class
+com\hryj\feign\StaffFeignClient.class
+com\hryj\mapper\UserInfoMapper.class
+com\hryj\feign\PofitFeignClient.class
+com\hryj\UserApplication.class
+com\hryj\service\UserLoginTokenService.class
+com\hryj\mapper\UserAddressMapper.class
+com\hryj\controller\UserAppController.class
+com\hryj\service\UserAddressService.class
+com\hryj\service\UserService.class
+com\hryj\mapper\UserOftenPartyMapper.class
+com\hryj\controller\UserInnerController.class

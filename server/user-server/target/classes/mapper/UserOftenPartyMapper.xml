@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.UserOftenPartyMapper">
+
+    <!-- 更新用户其他常用门店或仓库为非默认 -->
+    <update id="updateOtherUserOftenParty">
+        update u_user_often_party set default_flag = 0 where id &lt;&gt; #{id} AND user_id = #{user_id}
+    </update>
+
+</mapper>

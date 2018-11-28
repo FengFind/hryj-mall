@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hryj.mapper.OrderReturnMapper">
+
+
+    <!--根据订单ID查询订单退货信息-->
+    <select id="getAdminOrderDetailResponseVO" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.response.AdminOrderReturnResponseVO">
+          select return_reason,return_remark,return_image from o_order_return where order_id = #{order_id}
+    </select>
+
+    <!--统计退货处理-->
+    <select id="countReturnToDo" parameterType="java.lang.Long"
+            resultType="java.lang.Integer">
+          select count(return_status) wait_return_num
+          from o_order_return where return_handel_id =#{distribution_staff_id} and return_status = '02'
+    </select>
+
+    <!--获取退货单信息-->
+    <select id="getOrderReturnInfo" resultType="com.hryj.entity.bo.order.OrderReturn">
+        select * from o_order_return where order_id=#{order_id}
+    </select>
+
+    <!--根据orderId跟新退货单状态-->
+    <update id="updateReturnStatus" parameterType="com.hryj.entity.vo.order.request.DistributionOrderIdVO">
+        update o_order_return set return_status=#{return_status} where order_id=#{order_id}
+    </update>
+
+
+    <!--根据用户获取配送金额-->
+    <select id="getOrderInfoByOrderId" resultType="java.lang.Double">
+    select distribution_amt
+    from
+		sf_staff_dept_relation
+    where staff_id = #{distribution_staff_id}
+    </select>
+
+    <!--根据订单编号获取退货单详情-->
+    <select id="getReturnDetails" resultType="com.hryj.entity.vo.order.response.ReturnOrderDetailsResponseVO" parameterType="java.lang.Long">
+    SELECT
+        id AS return_id,
+        return_apply_name,
+        return_apply_time,
+        return_reason,
+        return_image,
+        user_name,
+        user_phone,
+        user_address
+    FROM
+        o_order_return where order_id=#{order_id}
+
+    </select>
+
+
+    <!--查询仓库代处理退货单-->
+    <select id="countReturnFroWarehouse" resultType="java.lang.Integer">
+        SELECT
+        count(*)
+        FROM
+        o_order_return ret
+        INNER JOIN o_order_info info ON ret.order_id=info.id
+        WHERE
+        info.party_id=#{dept_id}
+            AND ret.return_status=#{return_status}
+    </select>
+
+
+
+    <!--获取退货单商品信息-->
+    <select id="getReturnOrderProductMessage" parameterType="java.lang.Long"
+            resultType="com.hryj.entity.vo.order.OrderReturnProductVO">
+        SELECT
+        oop.party_id,
+        oop.activity_id,
+        oop.product_id,
+        orp.order_product_id,
+        orp.return_quantity,
+        orp.return_amt,
+        orp.return_price
+        FROM
+        o_order_info ooi
+        INNER JOIN o_order_product oop ON ooi.id = oop.order_id
+        INNER JOIN o_return_product orp ON ooi.id = orp.order_id and oop.id = orp.order_product_id
+        WHERE ooi.id = #{order_id}
+        <if test="order_product_id != null">
+            AND orp.order_product_id = #{order_product_id}
+        </if>
+
+    </select>
+</mapper>
